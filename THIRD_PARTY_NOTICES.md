@@ -54,4 +54,6 @@ their upstream license and copyright notices when distributing those packages.
 
 客户端界面迁移自 Ekko Studio 的 GithubPreviewSettings.vue，由插件独立维护和打包。随包 Vue、Naive UI 及其客户端依赖的许可与署名见 THIRD_PARTY_CLIENT_NOTICES.txt。
 
-assets/logo.png 是 EKKOLearnAI 提供的 Ekko Studio 品牌 Logo 的缩小副本，用于官方版本预览插件的头像与入口；品牌标识权利归原权利人。
+assets/logo.png 是 EKKOLearnAI 提供的 Ekko Studio 品牌 Logo 的缩小副本，用于官方版本预览插件的头像；品牌标识权利归原权利人。
+
+assets/preview-navigation.svg 及其 PNG 副本保留原版本预览的立方体图形，由插件随包提供，用于设置侧栏入口；不依赖 Studio 的命名图标定义。

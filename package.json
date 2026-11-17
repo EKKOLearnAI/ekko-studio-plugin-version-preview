@@ -1,10 +1,11 @@
 {
   "name": "@ekkolearnai/studio-plugin-version-preview",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "Independent Studio source preview runner",
   "license": "MIT",
+  "author": "ekko",
   "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-version-preview",
   "engines": {
     "node": ">=23"
