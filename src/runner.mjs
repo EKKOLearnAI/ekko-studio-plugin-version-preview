@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { spawn, execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createServer } from "node:net";
@@ -13,7 +13,7 @@ import {
   realpath,
 } from "node:fs/promises";
 import { existsSync, openSync, closeSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { join, dirname, resolve, basename } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
@@ -65,7 +65,7 @@ export function repository(raw) {
     throw new Error("Preview repository must be a GitHub owner/repository URL");
   return value;
 }
-export function sortedTags(tags) {
+export function sortedTags(tags, limit = 8) {
   return [
     { name: "main", sha: "" },
     ...tags
@@ -84,7 +84,7 @@ export function sortedTags(tags) {
               : bp.localeCompare(ap, undefined, { numeric: true }))
         );
       })
-      .slice(0, 8),
+      .slice(0, limit),
   ];
 }
 export async function portFree(port) {
@@ -118,87 +118,36 @@ export class PreviewRunner {
     signal,
     fetchImpl = fetch,
     processes,
+    rootDir, sourceDir, homeDir, portSlot = 0,
   }) {
-    if (!environment?.webUiHome)
-      throw new Error(
-        "This plugin requires Studio PluginContext.environment support",
-      );
-    this.environment = environment;
+    this.storageMode = "isolated";
+    this.environment = environment || { isPreview: false };
     this.config = config;
     this.lifetime = signal;
     this.fetch = fetchImpl;
     this.dataDir = resolve(dataDir);
-    this.root = resolve(environment.webUiHome);
-    this.source = join(this.root, "hermes-web-ui-pereview");
-    this.home = join(this.root, "hermes-web-ui-pereview-home");
-    this.frontendPort = config.frontendPort ?? 8651;
-    this.backendPort = config.backendPort ?? 8650;
-    this.bridgePort = config.bridgePort ?? 18650;
-    this.workerPortBase = config.workerPortBase ?? 19650;
-    if (
-      new Set([
-        this.frontendPort,
-        this.backendPort,
-        this.bridgePort,
-        this.workerPortBase,
-      ]).size !== 4
-    )
-      throw new Error("Preview ports must be distinct");
-    for (const port of [
-      this.frontendPort,
-      this.backendPort,
-      this.bridgePort,
-      this.workerPortBase,
-    ])
-      if (!Number.isInteger(port) || port < 1024 || port > 65535)
+    this.root = resolve(rootDir || join(this.dataDir, "preview"));
+    this.source = sourceDir || join(this.root, "source");
+    this.home = homeDir || join(this.root, "home");
+    this.portSlot = portSlot;
+    this.autoPorts = new Set();
+    const defaults = { frontendPort: 8661 + portSlot * 10, backendPort: 8660 + portSlot * 10,
+      bridgePort: 18660 + portSlot * 10, workerPortBase: 20000 + portSlot * 1000 };
+    for (const [key, fallback] of Object.entries(defaults)) {
+      if (!config[key]) this.autoPorts.add(key);
+      this[key] = config[key] || fallback;
+      if (!Number.isInteger(this[key]) || this[key] < 1024 || this[key] > (key === "workerPortBase" ? 64500 : 65535))
         throw new Error("Invalid preview port");
+    }
+    if (new Set(Object.keys(defaults).map(key => this[key])).size !== 4)
+      throw new Error("Preview ports must be distinct");
     if (config.frontendOrigin) {
       const url = new URL(config.frontendOrigin);
-      if (
-        !["http:", "https:"].includes(url.protocol) ||
-        url.username ||
-        url.password
-      )
+      if (!["http:", "https:"].includes(url.protocol) || url.username || url.password)
         throw new Error("Invalid frontendOrigin");
     }
-    this.repo = repository(
-      config.repository ||
-        process.env.HERMES_WEB_UI_PREVIEW_REPO ||
-        environment.studio?.repositoryUrl ||
-        "",
-    );
-    const transport =
-      config.bridgeTransport === "auto" || !config.bridgeTransport
-        ? process.env.HERMES_WEB_UI_PREVIEW_AGENT_BRIDGE_TRANSPORT ||
-          (process.platform === "win32" ? "tcp" : "ipc")
-        : config.bridgeTransport;
-    this.bridge =
-      process.env.HERMES_WEB_UI_PREVIEW_AGENT_BRIDGE_ENDPOINT ||
-      (transport === "tcp"
-        ? `tcp://127.0.0.1:${this.bridgePort}`
-        : `ipc://${join(this.home, "agent-bridge.sock")}`);
-    const bridgeURL = new URL(this.bridge);
-    if (!["ipc:", "unix:", "tcp:"].includes(bridgeURL.protocol))
-      throw new Error("Unsupported bridge endpoint");
-    if (bridgeURL.protocol === "tcp:") {
-      if (
-        !["127.0.0.1", "localhost", "[::1]"].includes(bridgeURL.hostname) ||
-        !bridgeURL.port
-      )
-        throw new Error("Preview bridge must be a loopback endpoint");
-      this.bridgePort = Number(bridgeURL.port);
-    }
-    if (
-      this.bridgePort === this.frontendPort ||
-      this.bridgePort === this.backendPort
-    )
-      throw new Error("Preview bridge port conflicts with Web UI ports");
-    if (
-      bridgeURL.protocol !== "tcp:" &&
-      decodeURIComponent(bridgeURL.pathname) !==
-        join(this.home, "agent-bridge.sock")
-    )
-      throw new Error("Preview IPC socket must be inside its data home");
+    this.repo = repository(config.repository || environment?.studio?.repositoryUrl || "https://github.com/EKKOLearnAI/ekko-studio");
+    this.updateBridge();
     this.actionLog = join(this.dataDir, "preview-action.log");
     this.devLog = join(this.dataDir, "preview-dev.log");
     this.stateFile = join(this.dataDir, "runner.json");
@@ -212,7 +161,41 @@ export class PreviewRunner {
     };
     this.processes = processes || new Processes((text) => this.log(text));
     this.fetches = new Set();
+    this.tagPackages = new Map();
     this.closed = false;
+  }
+  updateBridge() {
+    const transport = this.config.bridgeTransport;
+    this.bridge = transport === "ipc" ? `ipc://${join(this.home, "agent-bridge.sock")}` : `tcp://127.0.0.1:${this.bridgePort}`;
+    if (transport === "ipc" && Buffer.byteLength(join(this.home, "agent-bridge.sock")) > 100)
+      throw new Error("Preview IPC path is too long; use automatic bridge transport");
+  }
+  async allocatePorts() {
+    const keys = ["frontendPort", "backendPort", "bridgePort", "workerPortBase"];
+    const saved = this.state.ports;
+    const ownProcess = this.state.process;
+    if (saved && ownProcess?.fingerprint && await fingerprint(ownProcess.pid) === ownProcess.fingerprint) {
+      for (const key of keys) this[key] = saved[key];
+      this.updateBridge();
+      return;
+    }
+    for (let attempt = -1; attempt < 60; attempt++) {
+      const base = 8660 + this.portSlot * 10 + Math.max(0, attempt) * 200;
+      const ports = { frontendPort: base + 1, backendPort: base, bridgePort: base + 10000,
+        workerPortBase: 20000 + this.portSlot * 1000 };
+      for (const key of keys) {
+        if (!this.autoPorts.has(key)) ports[key] = this[key];
+        else if (attempt === -1) ports[key] = saved?.[key] || this[key];
+      }
+      if (new Set(Object.values(ports)).size !== 4) continue;
+      const available = await Promise.all([...this.autoPorts].map(key => portFree(ports[key])));
+      if (!available.every(Boolean)) continue;
+      for (const key of keys) this[key] = ports[key];
+      this.state.ports = ports;
+      this.updateBridge();
+      return;
+    }
+    throw new Error("No available preview ports were found");
   }
   async safePaths() {
     for (const file of [this.source, this.home, this.dataDir]) {
@@ -230,8 +213,8 @@ export class PreviewRunner {
     if (physicalRoot !== this.root) {
       const oldHome = this.home;
       this.root = physicalRoot;
-      this.source = join(this.root, "hermes-web-ui-pereview");
-      this.home = join(this.root, "hermes-web-ui-pereview-home");
+      this.source = join(this.root, basename(this.source));
+      this.home = join(this.root, basename(this.home));
       this.lock = join(this.root, ".version-preview-owner.json");
       if (this.bridge === `ipc://${oldHome}/agent-bridge.sock`)
         this.bridge = `ipc://${this.home}/agent-bridge.sock`;
@@ -258,9 +241,10 @@ export class PreviewRunner {
       if (e.code !== "EEXIST") throw e;
       const owner = await readJson(this.lock, null);
       if (owner) validateModel(contract, "owner", owner);
-      if (!owner || alive(owner.pid))
+      const current = owner && await fingerprint(owner.pid);
+      if (!owner || (alive(owner.pid) && (!current || !owner.fingerprint || current === owner.fingerprint)))
         throw new Error(
-          "Another preview owner is active or its ownership is uncertain",
+          "This preview owner is still active; use the same Studio instance or stop it before reloading",
         );
       await rm(this.lock);
       await claim();
@@ -290,7 +274,8 @@ export class PreviewRunner {
         };
         this.state.active = null;
       }
-      // Existing source/data is reused in place, never reset, copied or migrated silently.
+      await this.allocatePorts();
+      // Existing plugin-owned source/data is reused in place.
       await this.persist();
       return this;
     } catch (e) {
@@ -341,6 +326,7 @@ export class PreviewRunner {
         (await fingerprint(record.pid)) === record.fingerprint,
     );
     return {
+      storage_mode: this.storageMode,
       preview_dir: this.source,
       webui_home: this.home,
       exists: existsSync(this.source),
@@ -402,6 +388,8 @@ export class PreviewRunner {
       throw new Error("Recursive version preview is disabled");
   }
   async portsFree() {
+    await this.allocatePorts();
+    await this.persist();
     const ports = [
       this.backendPort,
       this.frontendPort,
@@ -411,7 +399,7 @@ export class PreviewRunner {
     const busy = ports.filter((p, i) => !free[i]);
     if (busy.length)
       throw new Error(
-        `Preview ports in use: ${busy.join(", ")}; stop or explicitly adopt the existing preview`,
+        `Preview ports in use: ${busy.join(", ")}; stop the process using the configured ports or use automatic ports`,
       );
   }
   async request(url, signal, timeout = 15000) {
@@ -427,6 +415,80 @@ export class PreviewRunner {
     return res;
   }
   async tags() {
+    this.assertActive();
+    if (this.tagsJob) return this.tagsJob;
+    this.tagsJob = this.loadTags();
+    try { return await this.tagsJob; }
+    finally { this.tagsJob = null; }
+  }
+  async studioTag(tag, signal) {
+    if (!/^[0-9a-f]{40,64}$/i.test(tag.sha))
+      throw new Error("Invalid tag commit returned by GitHub");
+    let pkg = this.tagPackages.get(tag.sha);
+    if (!pkg) {
+      let content;
+      try {
+        content = await this.processes.run("git", ["show", `${tag.sha}:package.json`], {
+          cwd: this.tagCatalog, signal, timeout: 15000, quiet: true,
+          env: { ...cleanEnvironment(), GIT_TERMINAL_PROMPT: "0" },
+        });
+      } catch (error) {
+        signal.throwIfAborted();
+        // An API-only installation can still inspect public tags without Git.
+        const url = this.repo.replace("github.com", "raw.githubusercontent.com") + `/${tag.sha}/package.json`;
+        const response = await this.request(url, signal);
+        content = await response.text();
+      }
+      pkg = JSON.parse(content);
+      validateModel(contract, "tagPackage", pkg);
+      this.tagPackages.set(tag.sha, pkg);
+    }
+    return ["ekko-studio", "hermes-web-ui"].includes(pkg.name) &&
+      tag.name.slice(1) === pkg.version;
+  }
+  async publicTagPackage(tag, signal) {
+    const url = this.repo.replace("github.com", "raw.githubusercontent.com") + `/${tag.sha}/package.json`;
+    const env = cleanEnvironment();
+    let content;
+    if (env.HTTPS_PROXY || env.https_proxy || env.ALL_PROXY || env.all_proxy) {
+      // Node fetch does not inherit the macOS system proxy. Curl is optional;
+      // Git remains the fallback when unavailable or when credentials are needed.
+      content = await this.processes.run("curl", ["--fail", "--silent", "--show-error", "--location", "--max-time", "8", url], {
+        signal, env, timeout: 10000, quiet: true,
+      });
+    } else content = await (await this.request(url, signal, 8000)).text();
+    const pkg = JSON.parse(content);
+    validateModel(contract, "tagPackage", pkg);
+    this.tagPackages.set(tag.sha, pkg);
+  }
+  async loadTagPackages(tags, signal) {
+    for (const tag of tags)
+      if (!/^[0-9a-f]{40,64}$/i.test(tag.sha)) throw new Error("Invalid tag commit returned by GitHub");
+    const uncached = tags.filter(tag => !this.tagPackages.has(tag.sha));
+    await Promise.allSettled(uncached.map(tag => this.publicTagPackage(tag, signal)));
+    signal.throwIfAborted();
+    const needed = tags.filter(tag => !this.tagPackages.has(tag.sha));
+    if (!needed.length) return;
+    const env = { ...cleanEnvironment(), GIT_TERMINAL_PROMPT: "0" };
+    const run = (args) => this.processes.run("git", args, {
+      cwd: this.tagCatalog, signal, env, timeout: 30000, quiet: true,
+    });
+    try {
+      if (!existsSync(join(this.tagCatalog, "HEAD"))) {
+        await mkdir(this.tagCatalog, { recursive: true });
+        await run(["init", "--bare"]);
+        await run(["config", "remote.origin.url", this.repo + ".git"]);
+        await run(["config", "remote.origin.promisor", "true"]);
+        await run(["config", "remote.origin.partialclonefilter", "blob:none"]);
+      }
+      await run(["fetch", "--quiet", "--depth=1", "--filter=blob:none", "--no-tags", "origin",
+        ...needed.map(tag => tag.sha)]);
+    } catch (error) {
+      signal.throwIfAborted();
+      // studioTag falls back to GitHub metadata; never include an unverified tag.
+    }
+  }
+  async loadTags() {
     this.assertActive();
     if (this.tagsCache?.until > Date.now())
       return { tags: this.tagsCache.tags };
@@ -467,7 +529,16 @@ export class PreviewRunner {
           ).json()
         ).map((t) => ({ name: t.name, sha: t.commit?.sha || "" }));
       }
-      const selected = sortedTags(tags);
+      this.tagCatalog = join(this.dataDir, "tag-catalog", createHash("sha256").update(this.repo).digest("hex").slice(0, 16));
+      const candidates = sortedTags(tags, Infinity).slice(1);
+      const verified = [];
+      for (let offset = 0; offset < candidates.length && verified.length < 8; offset += 4) {
+        const batch = candidates.slice(offset, offset + 4);
+        await this.loadTagPackages(batch, signal);
+        const matches = await Promise.all(batch.map(tag => this.studioTag(tag, signal)));
+        verified.push(...batch.filter((tag, index) => matches[index]));
+      }
+      const selected = [{ name: "main", sha: "" }, ...verified.slice(0, 8)];
       this.tagsCache = { until: Date.now() + 300000, tags: selected };
       return { tags: selected };
     } finally {
@@ -484,7 +555,7 @@ export class PreviewRunner {
       assertRef(input.tag);
     if (name === "prepare" && !input.tag)
       throw new Error("Preview ref required");
-    if (!["prepare", "install", "start", "adopt"].includes(name))
+    if (!["prepare", "install", "start"].includes(name))
       throw new Error("Unknown preview action");
     const controller = new AbortController();
     this.jobController = controller;
@@ -629,7 +700,7 @@ export class PreviewRunner {
       if (existsSync(this.source)) {
         backup = join(
           this.root,
-          `hermes-web-ui-pereview.backup-${randomUUID()}`,
+          `${basename(this.source)}.backup-${randomUUID()}`,
         );
         await rename(this.source, backup);
       }
@@ -821,76 +892,6 @@ export class PreviewRunner {
       }
     })();
     return this.stopPromise;
-  }
-  async adopt({ confirm }, signal) {
-    if (confirm !== true)
-      throw new Error(
-        "Explicit confirmation required to stop an existing legacy preview",
-      );
-    if (process.platform === "win32")
-      throw new Error(
-        "Legacy process adoption on Windows requires stopping the old preview first; data is still reused",
-      );
-    const roots = new Set();
-    for (const port of [
-      this.frontendPort,
-      this.backendPort,
-      ...(this.bridge.startsWith("tcp:") ? [this.bridgePort] : []),
-    ]) {
-      signal.throwIfAborted();
-      let output = "";
-      try {
-        output = (
-          await exec("lsof", [`-tiTCP:${port}`, "-sTCP:LISTEN"], {
-            timeout: 3000,
-          })
-        ).stdout;
-      } catch {}
-      for (const raw of output.trim().split(/\s+/).filter(Boolean)) {
-        const pid = Number(raw);
-        const cwd = await cwdOf(pid);
-        if (cwd !== this.source && !cwd.startsWith(this.source + "/"))
-          throw new Error(
-            `Port ${port} belongs to an unrelated process; refusing adoption`,
-          );
-        const pgid = Number(
-          (
-            await exec("ps", ["-o", "pgid=", "-p", String(pid)], {
-              timeout: 3000,
-            })
-          ).stdout.trim(),
-        );
-        const rootCwd = await cwdOf(pgid);
-        const command = (
-          await exec("ps", ["-o", "command=", "-p", String(pgid)], {
-            timeout: 3000,
-          })
-        ).stdout;
-        if (
-          rootCwd !== this.source ||
-          !/(?:npm|concurrently)/.test(command) ||
-          pgid === process.pid
-        )
-          throw new Error(
-            "Cannot verify legacy preview process group; stop it in the previous owner",
-          );
-        roots.add(pgid);
-      }
-    }
-    // Validate all candidates before any side effect.
-    const records = await Promise.all(
-      [...roots].map(async (pid) => ({
-        pid,
-        fingerprint: await fingerprint(pid),
-        sourceDir: this.source,
-      })),
-    );
-    for (const record of records) {
-      signal.throwIfAborted();
-      await stopTree(record);
-    }
-    await this.portsFree();
-    await this.log("Legacy preview stopped; existing source and data retained");
   }
   async close() {
     if (this.closing) return this.closing;

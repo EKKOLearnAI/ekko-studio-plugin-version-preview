@@ -165,14 +165,46 @@ export async function stopTree(record, tracked = false) {
   );
 }
 
-export function cleanEnvironment() {
+export function parseSystemProxy(output) {
+  const field = (name) => output.match(new RegExp(`^\\s*${name}\\s*:\\s*(.+?)\\s*$`, "m"))?.[1];
+  const proxies = {};
+  for (const [prefix, key] of [["HTTP", "http_proxy"], ["HTTPS", "https_proxy"]]) {
+    const host = field(`${prefix}Proxy`), port = Number(field(`${prefix}Port`));
+    if (field(`${prefix}Enable`) !== "1" || !host ||
+        !/^[a-zA-Z0-9.:[\]-]+$/.test(host) || !Number.isInteger(port) || port < 1 || port > 65535) continue;
+    const address = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+    proxies[key] = `http://${address}:${port}`;
+  }
+  if (Object.keys(proxies).length) proxies.no_proxy = "localhost,127.0.0.1,::1";
+  return proxies;
+}
+let systemProxies, systemProxiesUntil = 0;
+function systemProxyEnvironment() {
+  if (process.platform !== "darwin") return {};
+  if (systemProxiesUntil > Date.now()) return systemProxies;
+  try {
+    systemProxies = parseSystemProxy(execFileSync("/usr/sbin/scutil", ["--proxy"], {
+      encoding: "utf8", timeout: 2000, stdio: ["ignore", "pipe", "ignore"],
+    }));
+  } catch { systemProxies = {}; }
+  systemProxiesUntil = Date.now() + 60000;
+  return systemProxies;
+}
+export function cleanEnvironment(source = process.env, proxies = systemProxyEnvironment()) {
   const allowed =
     /^(?:PATH|HOME|USERPROFILE|USERNAME|USER|LOGNAME|TMP|TEMP|TMPDIR|SystemRoot|WINDIR|COMSPEC|PATHEXT|APPDATA|LOCALAPPDATA|LANG|LC_.*|TERM|SHELL|PREFIX|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY|http_proxy|https_proxy|all_proxy|no_proxy|npm_config_registry|npm_config_proxy|npm_config_https_proxy|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|SSL_CERT_DIR)$/i;
-  return Object.fromEntries(
-    Object.entries(process.env).filter(
+  const env = Object.fromEntries(
+    Object.entries(source).filter(
       ([k, v]) => allowed.test(k) && v !== undefined,
     ),
   );
+  // GUI-launched macOS apps often have no proxy environment despite an active
+  // system proxy. Git and npm need it explicitly; user overrides take priority.
+  if (!env.ALL_PROXY && !env.all_proxy) {
+    for (const [key, value] of Object.entries(proxies))
+      if (!env[key] && !env[key.toUpperCase()]) env[key] = value;
+  }
+  return env;
 }
 async function commandPath(name) {
   try {
@@ -225,10 +257,10 @@ export class Processes {
   async run(
     command,
     args,
-    { cwd, env = cleanEnvironment(), signal, timeout = 300_000 } = {},
+    { cwd, env = cleanEnvironment(), signal, timeout = 300_000, quiet = false } = {},
   ) {
     signal?.throwIfAborted();
-    this.log(`${command} ${args.join(" ")}`);
+    if (!quiet) this.log(`${command} ${args.join(" ")}`);
     const child = spawn(command, args, {
       cwd,
       env,
@@ -265,11 +297,11 @@ export class Processes {
     }, timeout);
     child.stdout.on("data", (x) => {
       output = (output + x).slice(-1024 * 1024);
-      this.log(String(x));
+      if (!quiet) this.log(String(x));
     });
     child.stderr.on("data", (x) => {
       stderr = (stderr + x).slice(-1024 * 1024);
-      this.log(String(x));
+      if (!quiet) this.log(String(x));
     });
     try {
       const result = await closed;

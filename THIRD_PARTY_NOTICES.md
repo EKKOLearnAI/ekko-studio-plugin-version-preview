@@ -49,3 +49,9 @@ The locked production dependencies are not vendored into this repository:
 
 Development dependencies retain their package-specific licenses as well. Preserve
 their upstream license and copyright notices when distributing those packages.
+
+## 版本预览客户端
+
+客户端界面迁移自 Ekko Studio 的 GithubPreviewSettings.vue，由插件独立维护和打包。随包 Vue、Naive UI 及其客户端依赖的许可与署名见 THIRD_PARTY_CLIENT_NOTICES.txt。
+
+assets/logo.png 是 EKKOLearnAI 提供的 Ekko Studio 品牌 Logo 的缩小副本，用于官方版本预览插件的头像与入口；品牌标识权利归原权利人。

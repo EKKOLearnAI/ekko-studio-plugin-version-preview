@@ -1,0 +1,104 @@
+
+
+
+.version-preview-client {
+  width: 100%;
+  padding: calc(16px * var(--spacing-scale, 1));
+  box-sizing: border-box;
+  color: var(--text-primary, #333);
+  font-family: var(--font-family, system-ui);
+  font-size: var(--font-size-base, 14px);
+  line-height: var(--line-height, 1.5);
+}
+.version-preview-client a { color: var(--accent-primary, #2080f0); }
+.github-preview-settings {
+  width: 100%;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(16px * var(--spacing-scale, 1));
+}
+
+.section-description {
+  margin: 0;
+  color: var(--text-secondary, #666);
+  font-size: calc(var(--font-size-base, 14px) * 13 / 14);
+  line-height: var(--line-height, 1.5);
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--spacing-scale, 1));
+  flex-wrap: wrap;
+}
+
+.tag-select {
+  width: 260px;
+}
+
+.preview-note {
+  width: 100%;
+}
+
+.status-table {
+  width: 100%;
+}
+
+.log-output {
+  width: 100%;
+  border: var(--border-width, 1px) solid var(--border-color, #ddd);
+  border-radius: var(--radius-component, 6px);
+  background: var(--theme-card-bg, var(--bg-card, transparent));
+  overflow: hidden;
+}
+
+.log-output-header {
+  padding: calc(12px * var(--spacing-scale, 1)) calc(14px * var(--spacing-scale, 1));
+  border-bottom: var(--border-width, 1px) solid var(--border-color, #ddd);
+  font-size: calc(var(--font-size-base, 14px) * 14 / 14);
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+.log-box {
+  border-bottom: var(--border-width, 1px) solid var(--border-color, #ddd);
+
+
+}
+
+.log-title {
+  padding: calc(8px * var(--spacing-scale, 1)) calc(14px * var(--spacing-scale, 1));
+  font-size: calc(var(--font-size-base, 14px) * 12 / 14);
+  color: var(--text-secondary, #666);
+  background: rgba(var(--text-primary-rgb), 0.04);
+}
+
+pre {
+  color: var(--text-primary, #333);
+  min-height: 180px;
+  max-height: 320px;
+  margin: 0;
+  padding: calc(12px * var(--spacing-scale, 1)) calc(14px * var(--spacing-scale, 1));
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: calc(var(--font-size-base, 14px) * 12 / 14);
+  line-height: var(--line-height, 1.5);
+}
+
+code {
+  font-size: calc(var(--font-size-base, 14px) * 12 / 14);
+  word-break: break-all;
+}
+
+@media (max-width: 1100px) {
+  .control-row {
+    align-items: stretch;
+  }
+}
+
+.log-box:last-child{border-bottom:0}
+@media(max-width:600px){.tag-select{width:100%}.control-row > .n-space{width:100%}}

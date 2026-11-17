@@ -1,15 +1,14 @@
 {
   "id": "version-preview",
-  "name": "版本预览 / Version Preview",
-  "version": "0.1.0",
+  "name": "Version Preview",
+  "version": "0.2.0",
   "apiVersion": 1,
-  "description": "独立管理 Studio GitHub 源码预览与既有预览数据。",
+  "description": "Preview Studio versions with isolated source, data and services.",
   "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-version-preview",
   "license": "MIT",
   "server": "server.mjs",
   "client": "client.mjs",
   "permissions": [
-    "api.write",
     "ui"
   ],
   "configSchema": {
@@ -17,7 +16,7 @@
     "properties": {
       "repository": {
         "type": "string",
-        "description": "覆盖宿主 GitHub 仓库；留空使用宿主包 repository。",
+        "description": "要预览的 GitHub 仓库；留空使用可选宿主元数据或官方 Studio 仓库。",
         "default": ""
       },
       "nodePath": {
@@ -32,31 +31,31 @@
       },
       "frontendPort": {
         "type": "integer",
-        "description": "预览前端端口。",
-        "minimum": 1024,
+        "description": "预览前端端口。 0 表示由插件自动分配；非零为高级固定端口覆盖。",
+        "minimum": 0,
         "maximum": 65535,
-        "default": 8651
+        "default": 0
       },
       "backendPort": {
         "type": "integer",
-        "description": "预览后端端口。",
-        "minimum": 1024,
+        "description": "预览后端端口。 0 表示由插件自动分配；非零为高级固定端口覆盖。",
+        "minimum": 0,
         "maximum": 65535,
-        "default": 8650
+        "default": 0
       },
       "bridgePort": {
         "type": "integer",
-        "description": "TCP bridge 端口。",
-        "minimum": 1024,
+        "description": "TCP bridge 端口。 0 表示由插件自动分配；非零为高级固定端口覆盖。",
+        "minimum": 0,
         "maximum": 65535,
-        "default": 18650
+        "default": 0
       },
       "workerPortBase": {
         "type": "integer",
-        "description": "Bridge worker 起始端口。",
-        "minimum": 1024,
-        "maximum": 65000,
-        "default": 19650
+        "description": "Bridge worker 起始端口。 0 表示由插件自动分配；非零为高级固定端口覆盖。",
+        "minimum": 0,
+        "maximum": 64500,
+        "default": 0
       },
       "bridgeTransport": {
         "type": "string",
@@ -79,19 +78,35 @@
   "views": [
     {
       "id": "preview",
-      "title": "版本预览 / Version Preview",
-      "slot": "page",
-      "icon": "code"
+      "title": "Version Preview",
+      "slot": "settings",
+      "icon": "assets/logo.png"
     }
   ],
   "navigation": {
-    "main": [
+    "settings": [
       {
         "viewId": "preview",
-        "title": "版本预览插件",
-        "icon": "code",
+        "icon": "assets/logo.png",
         "order": 90
       }
     ]
-  }
+  },
+  "i18n": {
+    "en": {
+      "name": "Version Preview",
+      "description": "Preview Studio versions with isolated source, data and services.",
+      "views": {
+        "preview": "Version Preview"
+      }
+    },
+    "zh": {
+      "name": "版本预览",
+      "description": "独立预览 Studio 版本，自动管理源码、数据目录与运行服务。",
+      "views": {
+        "preview": "版本预览"
+      }
+    }
+  },
+  "icon": "assets/logo.png"
 }

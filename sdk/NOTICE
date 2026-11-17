@@ -1,24 +1,22 @@
-Studio Plugin SDK distribution notice
-=====================================
+Studio Plugin SDK licensing
+===========================
 
-The SDK code, public types, harness, templates and all bundled guides in this
-plugin repository are distributed under the MIT license in LICENSE.
-This includes STUDIO_CTX.md and STUDIO_RETURNS.md and their plugin docs/ copies.
-The current repository license scope is selected by maintainer EKKOLearnAI.
+The SDK implementation, public types, harness, templates and all included SDK
+guides are made available under the MIT license in LICENSE. This includes
+docs/STUDIO_CTX.md and docs/STUDIO_RETURNS.md.
+This license grant is limited to the SDK. Studio host/core code remains governed
+by the Studio repository license. Downloaded applications and npm dependencies
+retain their own licenses.
 
-Origin and attribution
-----------------------
-The SDK and guides originate from EKKOLearnAI/ekko-studio, baseline
-74ce94b42fe976fd4b0c2d896658d9ee5bde36b7, with the public plugin-interface updates
-bundled with this plugin. The guides include contributions by widechaos
-(十方空烬 · Ember / Renchao Wu), submitted in Studio pull request #3827:
+Source and contributor attribution
+---------------------------------
+The SDK and guides originate from EKKOLearnAI/ekko-studio.
+docs/STUDIO_CTX.md and docs/STUDIO_RETURNS.md include contributions by
+widechaos (十方空烬 · Ember / Renchao Wu),
+submitted in EKKOLearnAI/ekko-studio pull request #3827:
 https://github.com/EKKOLearnAI/ekko-studio/pull/3827
 Source commit: ed442c0908e9cbde2971bbbe411a6a1a9e7b45f8
 
-Attribution is retained; the license change does not assert copyright assignment
-or erase any contributor's authorship. The complete guide bodies are preserved.
-
-This notice applies to the copies distributed in this plugin repository. It does
-not relicense the Studio host/core, upstream repository as a whole, downloaded
-applications or separately installed npm dependencies. Historical commits retain
-the notices recorded in their snapshots; Git history has not been rewritten.
+Generated/embedded plugins may carry the same guides twice, under sdk/docs/
+and under the plugin's docs/. The MIT license applies to both copies. Keep the
+MIT license text and this attribution notice with redistributed SDK materials.

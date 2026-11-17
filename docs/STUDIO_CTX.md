@@ -1,5 +1,3 @@
-<!-- SPDX-License-Identifier: MIT -->
-
 # Studio SDK v1 上下文与能力
 
 精确类型由 sdk/src/index.ts 统一导出，按 core/state/host/browser/sessions/bots/contexts/agents/http 组织源码。
@@ -200,6 +198,9 @@ BOT 变化通过 person.updated 事件通知，可重新 get 权威配置、任�
 声明 `browser.cdp` 后，使用 `host.browser.tabs.list/create/close` 和 `host.browser.cdp.attach/send/events/release`。
 该权限独立于 api.read/api.write；host.request 不能绕过浏览器模块访问浏览器代理接口。
 仅使用当前账号/Profile 已授权共享、且仍绑定的桌面浏览器；无桌面或授权已撤销时明确失败。
+本地和远程 Desktop 均由已登录的主窗口建立同一条账号/Profile 绑定的浏览器连接。
+插件通过相同的 host.browser 接口访问当前 Desktop；本地使用无需另起 MCP 子进程或配置调试端口。
+主窗口退出登录、切换账号/Profile、替换文档或关闭时撤销原连接，旧调用不会转移到其他 Desktop。
 不开放调试端口或 Studio 认证凭证，不创建另外的浏览器或浏览器 Profile。CDP 可以访问当前页面的调试及会话数据。
 
 ```js
@@ -223,25 +224,3 @@ events 是有界游标轮询，每批最多 64 条；保留 64 条，过期游�
 单条事件超过 16000 字节时返回空 params 并标记 truncated=true。调用者自行启用需要的 CDP 域。
 标签页控制沿用现有租约、串行队列和用户接管；release 释放控制，不拆卸宿主共用 debugger。
 取消后不接收迟到结果，已发送到 Chromium 的命令可能已执行，禁止据此自动重放。
-
-## 服务端安装环境
-
-`PluginContext.environment` 是服务端只读快照，旧宿主/测试适配器可缺省。
-`webUiHome` 为 Web UI 状态根目录绝对路径；`studio` 为当前安装的
-`{ name, version, repositoryUrl }`，无法识别时为 null；`isPreview` 为当前进程是否为预览子实例。
-此字段不传给浏览器，不包含 token、配置密钥或 Hermes Agent home，也不新增管理员校验。
-插件必须检查缺省值并报告宿主不兼容，不能根据插件安装目录反推宿主路径。
-
-## 服务端资源租约
-
-`ctx.resources?.claim(name)` 需要 `api.write`，不校验管理员角色。旧宿主可缺省，缺省时插件应报告不兼容。
-仅宿主注册的名称可申请；未知资源返回 PLUGIN_UNAVAILABLE(503)，占用返回 PLUGIN_RESOURCE_BUSY(409)。
-返回 `{data: Json, release(): void|Promise<void>}`，data 是独立快照，release 幂等；宿主在插件
-停用、重载、卸载、关闭和 apply 失败后的资源清理成功时释放；disposer 失败时保留租约并上报失败，
-防止资源仍运行却交出所有权。所有进程和任务仍须注册 disposer。不得在资源仍运行时手动 release。
-
-`studio.version-preview` 的 data 为 `{sourceDir: string, homeDir: string}`，均为 Web UI home 下的
-历史预览目录绝对路径。仅在内置模块没有活动作业和受控运行进程时可申请；否则拒绝，不取消或杀旧任务。
-租约存续期间，内置 prepare/install/start/stop 返回 409，内置关闭 hook 跳过该资源，读取仍保留。
-插件独立实现所有预览业务；租约不提供下载/安装/启动/停止，也不转发旧 API 或替换页面。
-插件退出释放后内置模块可继续操作原有目录。旧宿主进程崩溃后的孤儿进程由插件另行验证归属后显式接管。
