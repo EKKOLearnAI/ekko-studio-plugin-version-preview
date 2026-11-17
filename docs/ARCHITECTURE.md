@@ -23,6 +23,8 @@
 
 插件中心维护安装、启用、配置、回滚和卸载。插件全局安装一次，不按账号或 Profile 重复安装。
 每次调用的账号、Profile、会话、运行信息由 Studio 绑定。禁止把激活者身份缓存给后续调用。
+host.browser 在本地和远程 Desktop 使用同一条由主窗口登录身份建立的连接，沿用相同的页面登录状态。
+Desktop 仅允许当前 Studio 主文档持有浏览器连接能力，插件不会接收本机 Broker 凭据。
 开发登记只保存源码路径；管理员启用开发链接后才执行构建及插件代码。
 开发重载会释放旧实例、建立新运行目录并重新挂载页面，页面内存状态不会保留。
 加载失败保留上一个可运行版本。插件数据不放在源码目录或安装版本目录中。
@@ -35,7 +37,7 @@
 用户从头像菜单打开「导航栏设置」后，手动添加已启用插件的已注册入口；仅有 `views`、工具、Agent 设置页或 `workspace.sidebar` 不会进入候选列表。
 选择和顺序按 Studio 登录账号保存，独立于 Profile。插件停用、失败或移除注册后入口暂时隐藏，原选择保留；恢复可用后按用户原有顺序显示。`navigation.settings` 保持原有设置侧栏行为。
 两类入口可独立指向同一已声明页面；省略某个列表或设置为空数组，表示该侧栏不展示入口，页面和 Agent 设置按钮仍可用。
-设置侧栏只接受宿主命名线条 icon；主侧栏还可使用包内 PNG/JPEG/WebP/GIF 或 base64 图片，均不得省略 icon 或依赖插件头像回退。
+主侧栏与设置侧栏都接受宿主命名线条 icon、包内 PNG/JPEG/WebP/GIF 或 base64 图片，均不得省略 icon 或依赖插件头像回退。
 命名 icon 清单见 SDK 的 `PLUGIN_ICON_PATHS`。`workspace` 和 `agent-settings` 页面的专属配置侧栏也必须提供命名 `views[].icon`。
 `agent-settings` 使用 `/studio/plugin-agent-settings/:pluginId/:viewId`，同类页面自动组成 Agent 设置导航，返回 Agent 管理；不会自动注册主侧栏或设置侧栏入口。
 `workspace.sidebar` 是可选动态侧栏视图，仅用于 workspace。
@@ -181,24 +183,108 @@ BOT 业务与 `host.agents` 的执行引擎目录分别归属；创建 BOT 仍�
 无效已安装清单保持失败状态，可从插件中心更新或卸载；缺失权限元数据不会使整个页面崩溃。
 宿主不把旧字段转换为新契约，启用前必须通过当前清单校验。
 
-## 服务端安装环境
+## 插件名称、描述与入口国际化
 
-`PluginContext.environment` 是服务端只读快照，旧宿主/测试适配器可缺省。
-`webUiHome` 为 Web UI 状态根目录绝对路径；`studio` 为当前安装的
-`{ name, version, repositoryUrl }`，无法识别时为 null；`isPreview` 为当前进程是否为预览子实例。
-此字段不传给浏览器，不包含 token、配置密钥或 Hermes Agent home，也不新增管理员校验。
-插件必须检查缺省值并报告宿主不兼容，不能根据插件安装目录反推宿主路径。
+保留 `name`、`description`、`views[].title` 和可选导航 `title` 的字符串作为旧宿主与旧插件兼容值。
+新版 SDK 项目必须覆盖 `PLUGIN_LOCALES` 中 Studio 支持的全部语言，逐种提供 `name`、`description`，并用 `views: {viewId: title}` 翻译每个页面。
+独立声明了导航 title 时，还须提供 `navigation: {main?: {viewId: title}, settings?: {viewId: title}}`；省略导航 title 时沿用本语言的页面标题。
+其他语言可按 BCP 47 代码增加，显示按完整语言代码、基础语言、英文、原字符串依次回退。安装目录、插件 ID、视图 ID、数据与权限不随语言变化。
+Studio 的插件中心、详情、页面标题与两类侧栏统一使用这些翻译；插件内容仍须根据 `ctx.locale` 自行国际化，切换语言会重新挂载。
+没有 i18n 或只覆盖旧语言集的已发布插件仍可安装、启用和更新，原名称、描述、图标与入口保持可用。升级 SDK 时一起补齐翻译；新版项目的 harness:check/prepack 检查为必需项。
 
-## 服务端资源租约
+```json
+{
+  "name": "Version Preview",
+  "description": "Preview Studio versions with isolated source, data and services.",
+  "i18n": {
+    "en": {
+      "name": "Version Preview",
+      "description": "Preview Studio versions with isolated source, data and services.",
+      "views": {
+        "preview": "Version Preview"
+      }
+    },
+    "zh": {
+      "name": "版本预览",
+      "description": "独立预览 Studio 版本，自动管理源码、数据目录与运行服务。",
+      "views": {
+        "preview": "版本预览"
+      }
+    },
+    "zh-TW": {
+      "name": "版本預覽",
+      "description": "獨立預覽 Studio 版本，自動管理原始碼、資料目錄與執行服務。",
+      "views": {
+        "preview": "版本預覽"
+      }
+    },
+    "ja": {
+      "name": "バージョンプレビュー",
+      "description": "ソースコード、データ、サービスを分離して Studio の各バージョンをプレビューします。",
+      "views": {
+        "preview": "バージョンプレビュー"
+      }
+    },
+    "ko": {
+      "name": "버전 미리보기",
+      "description": "소스 코드, 데이터 및 서비스를 격리해 Studio 버전을 미리 봅니다.",
+      "views": {
+        "preview": "버전 미리보기"
+      }
+    },
+    "fr": {
+      "name": "Aperçu de version",
+      "description": "Prévisualisez les versions de Studio avec du code source, des données et des services isolés.",
+      "views": {
+        "preview": "Aperçu de version"
+      }
+    },
+    "es": {
+      "name": "Vista previa de versión",
+      "description": "Previsualiza versiones de Studio con código, datos y servicios aislados.",
+      "views": {
+        "preview": "Vista previa de versión"
+      }
+    },
+    "de": {
+      "name": "Versionsvorschau",
+      "description": "Studio-Versionen mit getrenntem Quellcode, eigenen Daten und Diensten in der Vorschau ausführen.",
+      "views": {
+        "preview": "Versionsvorschau"
+      }
+    },
+    "pt": {
+      "name": "Prévia de versão",
+      "description": "Visualize versões do Studio com código-fonte, dados e serviços isolados.",
+      "views": {
+        "preview": "Prévia de versão"
+      }
+    },
+    "ru": {
+      "name": "Предпросмотр версий",
+      "description": "Предварительный просмотр версий Studio с изолированными исходным кодом, данными и службами.",
+      "views": {
+        "preview": "Предпросмотр версий"
+      }
+    },
+    "ar": {
+      "name": "معاينة الإصدار",
+      "description": "عاين إصدارات Studio باستخدام شيفرة مصدرية وبيانات وخدمات معزولة.",
+      "views": {
+        "preview": "معاينة الإصدار"
+      }
+    },
+    "tr": {
+      "name": "Sürüm önizlemesi",
+      "description": "Studio sürümlerini yalıtılmış kaynak kodu, veri ve hizmetlerle önizleyin.",
+      "views": {
+        "preview": "Sürüm önizlemesi"
+      }
+    }
+  }
+}
+```
 
-`ctx.resources?.claim(name)` 需要 `api.write`，不校验管理员角色。旧宿主可缺省，缺省时插件应报告不兼容。
-仅宿主注册的名称可申请；未知资源返回 PLUGIN_UNAVAILABLE(503)，占用返回 PLUGIN_RESOURCE_BUSY(409)。
-返回 `{data: Json, release(): void|Promise<void>}`，data 是独立快照，release 幂等；宿主在插件
-停用、重载、卸载、关闭和 apply 失败后的资源清理成功时释放；disposer 失败时保留租约并上报失败，
-防止资源仍运行却交出所有权。所有进程和任务仍须注册 disposer。不得在资源仍运行时手动 release。
+插件市场列表支持可选的 i18n 名称/描述元数据，旧目录与旧条目仍显示原字段。修改名称、描述或翻译时也应增加插件版本，使目录同步能够识别新清单。
 
-`studio.version-preview` 的 data 为 `{sourceDir: string, homeDir: string}`，均为 Web UI home 下的
-历史预览目录绝对路径。仅在内置模块没有活动作业和受控运行进程时可申请；否则拒绝，不取消或杀旧任务。
-租约存续期间，内置 prepare/install/start/stop 返回 409，内置关闭 hook 跳过该资源，读取仍保留。
-插件独立实现所有预览业务；租约不提供下载/安装/启动/停止，也不转发旧 API 或替换页面。
-插件退出释放后内置模块可继续操作原有目录。旧宿主进程崩溃后的孤儿进程由插件另行验证归属后显式接管。
+Studio 与 SDK 共用 `PLUGIN_LOCALES` 语言清单，当前包含 en、zh、zh-TW、ja、ko、fr、es、de、pt、ru、ar、tr 共 12 种。新项目的名称、描述、全部页面和显式导航标题必须逐种提供；缺少任一项即检查失败，不能以英文回退代替翻译。回退仅用于旧插件、旧语言集或未知语言的运行兼容。创建模板同时提供全部语言的描述、设置标题与保存文案。插件文档自动使用 ctx.locale 设置 lang/dir，阿拉伯语为 RTL。

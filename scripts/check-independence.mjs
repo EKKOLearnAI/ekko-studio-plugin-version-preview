@@ -55,9 +55,8 @@ const result = {
   files,
   imports,
   hostRuntimeInterfaces: [
-    "PluginContext.environment",
+    "PluginContext.environment (optional metadata only)",
     "PluginContext.paths.dataDir",
-    "PluginContext.resources.claim",
     "PluginContext.extensions.rpc",
     "PluginContext.lifecycle",
   ],

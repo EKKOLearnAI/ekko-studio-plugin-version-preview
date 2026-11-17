@@ -1,12 +1,32 @@
-# Independent Studio Version Preview
+# Studio Version Preview
 
-独立版本预览插件 0.1.0，独立提供前端控制页、RPC、源码下载、依赖安装、运行监督、日志与持久化。插件不导入、复制或调用 Studio 内置版本预览实现；也不调用其六个业务 API。
+独立版本预览插件。界面迁移自 Studio 内置 `GithubPreviewSettings.vue`，保留相同的版本选择、按钮顺序、启用条件、状态表和日志区域；Vue 与 Naive UI 打包在插件客户端内，不从宿主加载组件。
 
-宿主内置页面、路由和执行器仍保留。使用插件时，公开资源租约负责防止两套控制器同时操作同一资源，未来移除内置模块只需让宿主继续提供同名资源描述。
+## 使用
 
-## 使用与开发
+在插件中心安装并启用，从设置侧栏打开“版本预览”：选择 main 或版本 tag，依次点击“准备代码”“安装依赖”“开启预览”。“停止”和“刷新”的行为及文案沿用内置界面。版本列表保留 main 和最近八个 Studio/Web UI 版本，读取 Tag 对应源码的根 package.json 校验包名及版本；Android/App Tag 不会因数字更大而混入。元数据按提交读取并缓存；网络或凭据需要时使用插件自己的 Git 浅缓存，不修改已准备的源码。后台作业完成后才提示成功；失败显示实际错误。运行路径、当前 Tag、仓库、依赖、运行状态、预览地址及两种日志均在原样式状态表中显示。
 
-需要本任务宿主分支提供的两个公开接口：服务端 `ctx.environment` 安装信息，以及 `ctx.resources.claim('studio.version-preview')` 独占租约。旧宿主会明确拒绝加载。插件 ID `version-preview`，页面 `/studio/plugins/version-preview/preview`；可在导航设置启用“版本预览插件”。
+预览目录、端口和运行进程由插件管理。只要求公开的 `ctx.paths.dataDir`、RPC 和 lifecycle；无需 `ctx.environment`、`ctx.resources` 或主仓库 PR #3840。内置预览页面、API 与执行器均可由宿主独立移除，不影响插件。插件不会接管、重命名或删除内置预览的旧目录。
+
+## 自动存储与端口
+
+新预览默认放在插件数据目录的 preview/source 与 preview/home。桌面版与开发服务即使共用同一插件数据根，也会自动分配稳定的独立目录、日志、状态和 worker 端口段，不争抢另一实例的锁。实例分配记录放在 instances/.slots，重载和升级保留。
+
+升级已有插件时，第一实例继续原位使用插件自有的 isolated-preview 目录及 runner.json，源码、数据库、上传和旧备份不搬动。这里兼容的是旧插件数据，不读取内置预览的历史路径。每次“准备代码”先下载校验、备份旧源码，再切换；预览数据保持原位，备份不自动删除。
+
+所有端口配置默认 0，表示自动分配并避开占用，结果保存到运行状态；重载优先复用。旧插件填入的默认 8650/8651/18650/19650 与 8660/8661/18660/19660 自动转为自动模式，其余非零自定义值保留。默认使用 loopback TCP bridge，避免深层目录超过 Unix socket 路径限制。配置中的 repository、Node/npm 路径、固定端口、bridgeTransport 和 frontendOrigin 仅作为可选高级覆盖。
+
+## 独立执行与清理
+
+后端独立实现 Git 浅克隆、GitHub 归档回退、依赖安装、运行监督、取消和进程归属校验。直接运行目标后端入口与 Vite 公共 API，不执行目标的版本预览管理器，也不调用内置预览业务 API。
+
+安装使用 npm install --include=dev --ignore-scripts，并 rebuild/加载 node-pty。前后端 HTTP 就绪后才报告启动完成。停用、重载、卸载和退出会等待作业取消及进程树清理。进程锁包含创建时间与随机标识；只释放本实例的锁，不按端口杀未知进程。
+
+子进程只继承系统、语言、代理、证书与 npm registry 相关环境；预览 Web UI、Agent home、uploads 和端口单独设置，不使用正式 AUTH_TOKEN。macOS 桌面启动缺少代理环境时，Git/npm 使用系统启用的静态 HTTP/HTTPS 代理，显式代理环境优先，localhost 绕过代理；不修改宿主全局网络设置，不解析 PAC。
+
+预览是执行可信源码的本机进程。公开支持 GitHub 源码；私有仓库使用本机 Git 的读取权限，不收集 GitHub token。外部网络、原生依赖构建工具、端口开放与远程 TLS 由运行环境提供。页面就绪验证不等于所有 Agent 和模型配置均已验证。
+
+## 开发与验证
 
 ```sh
 npm ci --include=dev --ignore-scripts
@@ -16,41 +36,7 @@ npm test
 npm run test:e2e
 ```
 
-在含上述接口的 Studio 插件中心，从本地插件绝对路径安装并启用；开发可使用同一宿主的 `ekko-studio plugins link <absolute-directory>`。运行时不需要插件的开发依赖；只依赖 Node 标准库和自身的 `tar` 包，启动的目标 Studio 源码会自行安装其开发依赖。
-
-本仓库公开提供源码；预览私有目标仓库时仍需本机 Git 的读取权限。插件不收集或保存 GitHub token。未发布 npm 包、GitHub Release，未自动安装到真实用户环境。预览 RPC 和租约没有管理员角色校验；Studio 原有可信插件安装管理规则保持原状。
-
-## 功能与运行方式
-
-- main + 最近八个版本 tag，Git 远端查询及 GitHub API 回退，缓存五分钟。
-- Git 浅克隆，失败使用 GitHub 归档；先下载校验再切换，保留完整旧源码备份。
-- `npm install --include=dev --ignore-scripts` 后 `npm rebuild node-pty`，验证 Vite、ts-node、TypeScript 及 node-pty 实际加载。
-- 自己的 Node supervisor 直接启动后端入口和 Vite，**不执行目标源码的 npm run dev、不读取 nodemon.json、不修改源码的配置文件**。前端使用 Vite 公共 API 加载应用配置、覆盖代理及端口；独立 AST 转换适配历史直接 WebSocket 端口，HTML 注入避免预览误用已保存的正式服务器地址。
-- 前后端 HTTP 均响应且状态低于 500 才报告启动成功。停止/取消等待下载、安装、就绪任务和进程树清理。RPC 返回 accepted 后应轮询到作业完成。
-- 中英文界面、窄屏布局、运行状态、错误与有界日志；打开/复制预览地址，远程部署可配置 frontendOrigin。
-- PID、系统创建时间、进程组与作业记录持久化；插件停用、重载、卸载、宿主退出均等待清理。崩溃后未完作业标记 interrupted。
-
-## 旧数据与接管
-
-资源租约提供旧源码目录与 Web UI 数据目录，继续使用历史拼写 `hermes-web-ui-pereview` 和 `hermes-web-ui-pereview-home`。账号、数据库、上传等不迁移、不重置、不自动删除。每次重新准备源码都将原目录重命名为 `hermes-web-ui-pereview.backup-<uuid>`；保留用户修改及旧依赖。备份会占空间，插件不自动清除。
-
-内置有任务或受控进程时，启用插件会被拒绝；须先在内置页面停止或等待原任务。租约存续时内置写操作返回 409，宿主原内置关闭 hook 跳过插件资源；插件结束并成功清理后释放。清理失败时保留租约并报错，防止错误交接。宿主没有把预览下载或运行逻辑扩展到租约接口。
-
-Unix/macOS 的“接管旧预览”经用户在页面确认后，核实监听进程 cwd、独立 npm/concurrently 进程组及创建时间，再停止旧进程、复用原数据。未知端口占用者或无法确认归属时拒绝，不按端口直接杀进程。Windows 无旧归属记录的进程需先在原宿主停止；旧数据仍原位复用。插件自身的 Windows 进程使用创建时间核验与 taskkill 树清理。
-
-状态和新日志放在 `ctx.paths.dataDir`，源码中的历史日志继续保留。响应只读取日志末尾 24000 字节。runner.json v1 与所有 RPC 使用 `contracts/plugin.json` 声明校验；未知状态版本或不明所有权锁拒绝覆盖。
-
-## 环境与适用边界
-
-默认后端/前端/TCP bridge/worker base 为 8650/8651/18650/19650；支持插件配置仓库、Node/npm-cli 绝对路径、端口、bridge 传输及 frontendOrigin。兼容预览专用仓库、bridge 环境覆盖。Node/npm 以参数数组启动，不拼接 npm.cmd shell。依赖安装和原生构建仍需网络及系统工具。
-
-子进程环境只保留系统、语言、代理、证书与 npm registry，再显式设置预览 home、uploads、端口、bridge 和开发标记。宿主 AUTH_TOKEN、UPLOAD_DIR、PORT、Node 调试参数不继承。为保护正式 Agent 状态，新启动实例将 `HERMES_HOME` 设为预览数据目录内的 `hermes-agent`；不会复制正式 Agent 数据，旧共享 Agent 配置需在预览环境另行配置。预览仍是执行可信源码的本机进程，不是容器沙箱。
-
-前端监听 0.0.0.0；浏览器默认将 localhost 替换为 Studio 页面主机。端口开放、反向代理与 TLS 由部署侧配置。后端预览标记阻止本插件递归启动；不删除或重写被预览版本的内置功能。
-
-只支持 GitHub 源码。私有源码 Git 鉴权使用本机 Git；没有 token 归档回退。归档拒绝链接、特殊文件和越界路径；含这类文件的源码会安全失败。归档来源 commit 暂为空。前后端就绪不等于 Agent 聊天或全部 bridge worker 都已验收。后端无 nodemon 文件监听；前端保留 Vite 热更新。未验证所有历史版本、Windows/Linux 或桌面 Electron 的实际运行。
-
-维护的测试覆盖真实 Node/Vite/ts-node 测试服务、取消/重载/孙进程清理、备份、接管与 UI；本次另外在隔离数据目录准备了真实 main 和 v1.0.9，并对两者完成依赖安装、启动和停止；main 页面还通过真实浏览器渲染检查。详细证据由任务报告提供，不打包进插件。
+客户端维护源码在 src/client，build 生成单文件 client.mjs 及随包第三方许可。运行时只需要 Node 标准库与自身的 tar 依赖。数据边界和兼容规则见 docs/CONTRACTS.md，独立性说明见 docs/INDEPENDENCE.md。
 
 ## 许可证
 
@@ -59,3 +45,7 @@ STUDIO_CTX.md、STUDIO_RETURNS.md 及其 sdk/docs 副本。指南正文和贡献
 来源及外部依赖的许可说明见 [署名与第三方声明](THIRD_PARTY_NOTICES.md)。
 此变更仅针对本插件仓库，不改变 Studio 主仓库整仓许可或外部 npm 依赖许可。
 `package.json` 的 `private: true` 仅防止误发布 npm，不代表 GitHub 仓库私有。
+
+插件头像和设置侧栏使用官方 Ekko Studio Logo。名称、描述及入口标题通过 manifest.i18n 覆盖 Studio 的全部 12 种语言，内容跟随 ctx.locale；fallback 字符串保留给旧版宿主。设置侧栏图片入口需要支持该能力的新版 Studio。旧插件 ID、preview 视图 ID 与插件数据目录均保持兼容。
+
+语言清单与 SDK 的 PLUGIN_LOCALES 一致：en、zh、zh-TW、ja、ko、fr、es、de、pt、ru、ar、tr。预览操作、提示和状态字段均有对应翻译；Naive UI 控件跟随语言，阿拉伯语使用 RTL，路径和日志保留 LTR。

@@ -1,6 +1,6 @@
 {
   "name": "@ekkolearnai/studio-plugin-version-preview",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Independent Studio source preview runner",
@@ -10,7 +10,7 @@
     "node": ">=23"
   },
   "scripts": {
-    "build": "node --check server.mjs && node --check client.mjs && node --check src/runner.mjs && node --check src/preview-child.mjs",
+    "build": "node scripts/build-client.mjs && node --check server.mjs && node --check client.mjs && node --check src/runner.mjs && node --check src/preview-child.mjs",
     "harness:check": "node scripts/plugin-harness.mjs check",
     "test": "node --test tests/*.test.mjs",
     "test:e2e": "playwright test",
@@ -21,11 +21,15 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
-    "vite": "^8.3.4",
+    "@vitejs/plugin-vue": "6.0.7",
+    "naive-ui": "2.44.1",
+    "ts-node": "^10.9.2",
     "typescript": "~6.0.2",
-    "ts-node": "^10.9.2"
+    "vite": "^8.3.4",
+    "vue": "3.5.44"
   },
   "files": [
+    "assets",
     "plugin.json",
     "server.mjs",
     "client.mjs",
@@ -38,6 +42,7 @@
     "AGENTS.md",
     "README.md",
     "LICENSE",
-    "THIRD_PARTY_NOTICES.md"
+    "THIRD_PARTY_NOTICES.md",
+    "THIRD_PARTY_CLIENT_NOTICES.txt"
   ]
 }

@@ -43,6 +43,7 @@ async function fixture(t, options = {}) {
   const ports = await Promise.all([1, 2, 3, 4].map(freePort));
   const r = new PreviewRunner({
     dataDir: join(root, "plugins/plugin-data/version-preview"),
+    rootDir: root,
     environment: {
       webUiHome: root,
       studio: { repositoryUrl: "https://github.com/example/studio" },
@@ -150,7 +151,7 @@ test("refs, versions and GitHub sources reject bad input and preserve order", ()
     ["main", "v1.10.0", "v1.10.0-beta.1", "v1.9.0"],
   );
 });
-test("reuses legacy source/data without modifying either; lock excludes a second owner", async (t) => {
+test("reuses plugin-owned source/data without modifying either; lock excludes a second owner", async (t) => {
   const r = await fixture(t);
   await source(r.source);
   await mkdir(r.home);
@@ -158,6 +159,7 @@ test("reuses legacy source/data without modifying either; lock excludes a second
   assert.equal((await r.status()).current_tag, "main");
   const other = new PreviewRunner({
     dataDir: r.dataDir,
+    rootDir: r.root,
     environment: r.environment,
     config: r.config,
   });
@@ -358,6 +360,7 @@ test("restart marks interrupted jobs and preserves source/home", async (t) => {
   );
   const recovered = new PreviewRunner({
     dataDir: r.dataDir,
+    rootDir: r.root,
     environment: r.environment,
     config: r.config,
   });
@@ -389,49 +392,6 @@ test("bounded tail and process cancellation finish without orphan", async (t) =>
   await assert.rejects(running, /test cancel/);
   assert.equal(p.children.size, 0);
 });
-test("legacy adoption verifies cwd/group, stops old npm preview and preserves its data", async (t) => {
-  const { spawn } = await import("node:child_process");
-  const { toolchain } = await import("../src/processes.mjs");
-  const r = await fixture(t);
-  await independentSource(r.source, { runnable: true });
-  await mkdir(r.home);
-  await writeFile(join(r.home, "legacy.db"), "do not migrate");
-  const tools = await toolchain();
-  const child = spawn(tools.command, [...tools.args, "run", "dev"], {
-    cwd: r.source,
-    env: {
-      ...tools.env,
-      PORT: String(r.backendPort),
-      HERMES_WEB_UI_FRONTEND_PORT: String(r.frontendPort),
-      HERMES_WEB_UI_HOME: r.home,
-    },
-    detached: true,
-    stdio: "ignore",
-  });
-  t.after(async () => {
-    try {
-      process.kill(-child.pid, "SIGKILL");
-    } catch {}
-  });
-  for (let i = 0; i < 80; i++) {
-    try {
-      if ((await fetch(`http://127.0.0.1:${r.frontendPort}`)).ok) break;
-    } catch {}
-    await delay(50);
-  }
-  await r.accept("adopt", { confirm: true });
-  const s = await done(r);
-  assert.equal(
-    s.last_action_success,
-    true,
-    s.last_action_message + "\n" + s.dev_log,
-  );
-  assert.equal(alive(child.pid), false);
-  assert.equal(
-    await readFile(join(r.home, "legacy.db"), "utf8"),
-    "do not migrate",
-  );
-});
 test("reloading plugin stops owned preview and permits a fresh owner", async (t) => {
   const r = await fixture(t);
   await independentSource(r.source, { runnable: true });
@@ -442,6 +402,7 @@ test("reloading plugin stops owned preview and permits a fresh owner", async (t)
   assert.equal(alive(s.pid), false);
   const next = new PreviewRunner({
     dataDir: r.dataDir,
+    rootDir: r.root,
     environment: r.environment,
     config: r.config,
   });

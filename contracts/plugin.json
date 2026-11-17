@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "版本预览插件的 RPC 与持久化边界合同；全局单实例。",
+  "description": "版本预览插件的 RPC 与持久化边界合同；预览目录和端口由插件管理，按宿主实例隔离。",
   "models": {
     "empty": {
       "type": "null",
@@ -17,7 +17,9 @@
           "maxLength": 200
         }
       },
-      "required": ["tag"],
+      "required": [
+        "tag"
+      ],
       "additionalProperties": false
     },
     "start": {
@@ -34,26 +36,13 @@
       "required": [],
       "additionalProperties": false
     },
-    "adopt": {
-      "type": "object",
-      "description": "显式停止可验证的旧预览进程，沿用原数据。",
-      "properties": {
-        "confirm": {
-          "type": "boolean",
-          "description": "用户在界面确认旧进程交接。",
-          "enum": [true]
-        }
-      },
-      "required": ["confirm"],
-      "additionalProperties": false
-    },
     "status": {
       "type": "object",
       "description": "全局单实例预览状态。",
       "properties": {
         "preview_dir": {
           "type": "string",
-          "description": "源码目录绝对路径；沿用旧拼写。"
+          "description": "插件自动分配的源码绝对路径；旧插件自有目录原位复用。"
         },
         "webui_home": {
           "type": "string",
@@ -161,6 +150,13 @@
             "type": "string",
             "description": "备份目录绝对路径。"
           }
+        },
+        "storage_mode": {
+          "type": "string",
+          "description": "始终为 isolated；插件独立管理资源，不申请内置预览租约。",
+          "enum": [
+            "isolated"
+          ]
         }
       },
       "required": [
@@ -189,7 +185,8 @@
         "recursive_blocked",
         "pid",
         "frontend_port",
-        "backups"
+        "backups",
+        "storage_mode"
       ],
       "additionalProperties": false
     },
@@ -199,7 +196,7 @@
       "properties": {
         "preview_dir": {
           "type": "string",
-          "description": "源码目录绝对路径；沿用旧拼写。"
+          "description": "插件自动分配的源码绝对路径；旧插件自有目录原位复用。"
         },
         "webui_home": {
           "type": "string",
@@ -311,12 +308,23 @@
         "success": {
           "type": "boolean",
           "description": "请求已接受。",
-          "enum": [true]
+          "enum": [
+            true
+          ]
         },
         "accepted": {
           "type": "boolean",
           "description": "异步任务已接受。",
-          "enum": [true]
+          "enum": [
+            true
+          ]
+        },
+        "storage_mode": {
+          "type": "string",
+          "description": "始终为 isolated；插件独立管理资源，不申请内置预览租约。",
+          "enum": [
+            "isolated"
+          ]
         }
       },
       "required": [
@@ -347,7 +355,8 @@
         "frontend_port",
         "backups",
         "success",
-        "accepted"
+        "accepted",
+        "storage_mode"
       ],
       "additionalProperties": false
     },
@@ -357,7 +366,7 @@
       "properties": {
         "preview_dir": {
           "type": "string",
-          "description": "源码目录绝对路径；沿用旧拼写。"
+          "description": "插件自动分配的源码绝对路径；旧插件自有目录原位复用。"
         },
         "webui_home": {
           "type": "string",
@@ -469,7 +478,16 @@
         "success": {
           "type": "boolean",
           "description": "清理已完成。",
-          "enum": [true]
+          "enum": [
+            true
+          ]
+        },
+        "storage_mode": {
+          "type": "string",
+          "description": "始终为 isolated；插件独立管理资源，不申请内置预览租约。",
+          "enum": [
+            "isolated"
+          ]
         }
       },
       "required": [
@@ -499,17 +517,28 @@
         "pid",
         "frontend_port",
         "backups",
-        "success"
+        "success",
+        "storage_mode"
       ],
       "additionalProperties": false
     },
+    "tagPackage": {
+      "type": "object",
+      "description": "Tag 指向的源码根 package.json，用于区分 Studio 与 App 发布；允许上游其他字段。",
+      "properties": {
+        "name": { "type": "string", "description": "源码包名；Studio 允许 ekko-studio 或 hermes-web-ui。" },
+        "version": { "type": "string", "description": "源码 Studio/Web UI 版本，必须与 Tag 去掉 v 后一致。" }
+      },
+      "required": ["name", "version"],
+      "additionalProperties": true
+    },
     "tags": {
       "type": "object",
-      "description": "main 加最多八个版本 tag。",
+      "description": "main 加最多八个经源码版本校验的 Studio/Web UI tag；排除版本号不匹配的 Android/App tag。",
       "properties": {
         "tags": {
           "type": "array",
-          "description": "按版本倒序排列。",
+          "description": "按 Studio/Web UI 版本倒序排列，Tag 去掉 v 后必须与根 package.json 的版本一致。",
           "maxItems": 9,
           "items": {
             "type": "object",
@@ -524,12 +553,17 @@
                 "description": "Git SHA；main/归档未知时为空。"
               }
             },
-            "required": ["name", "sha"],
+            "required": [
+              "name",
+              "sha"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["tags"],
+      "required": [
+        "tags"
+      ],
       "additionalProperties": false
     },
     "state": {
@@ -539,7 +573,9 @@
         "version": {
           "type": "integer",
           "description": "状态结构版本。",
-          "enum": [1]
+          "enum": [
+            1
+          ]
         },
         "active": {
           "type": "object",
@@ -574,7 +610,11 @@
               "description": "ISO 完成时间。"
             }
           },
-          "required": ["id", "name", "startedAt"],
+          "required": [
+            "id",
+            "name",
+            "startedAt"
+          ],
           "additionalProperties": false
         },
         "last": {
@@ -610,7 +650,11 @@
               "description": "ISO 完成时间。"
             }
           },
-          "required": ["id", "name", "startedAt"],
+          "required": [
+            "id",
+            "name",
+            "startedAt"
+          ],
           "additionalProperties": false
         },
         "process": {
@@ -631,7 +675,11 @@
               "description": "对应源码目录。"
             }
           },
-          "required": ["pid", "fingerprint", "sourceDir"],
+          "required": [
+            "pid",
+            "fingerprint",
+            "sourceDir"
+          ],
           "additionalProperties": false
         },
         "backups": {
@@ -641,25 +689,49 @@
             "type": "string",
             "description": "备份目录绝对路径。"
           }
-        }
-      },
-      "required": ["version", "backups"],
-      "additionalProperties": false
-    },
-    "lease": {
-      "type": "object",
-      "description": "公开宿主资源租约提供的历史目录；只读元数据。",
-      "properties": {
-        "sourceDir": {
-          "type": "string",
-          "description": "历史源码目录绝对路径。"
         },
-        "homeDir": {
-          "type": "string",
-          "description": "历史预览 Web UI 数据目录绝对路径。"
+        "ports": {
+          "type": "object",
+          "description": "插件自动分配并在重载后复用的预览端口。",
+          "properties": {
+            "frontendPort": {
+              "type": "integer",
+              "description": "前端端口。",
+              "minimum": 1024,
+              "maximum": 65535
+            },
+            "backendPort": {
+              "type": "integer",
+              "description": "后端端口。",
+              "minimum": 1024,
+              "maximum": 65535
+            },
+            "bridgePort": {
+              "type": "integer",
+              "description": "Agent bridge端口。",
+              "minimum": 1024,
+              "maximum": 65535
+            },
+            "workerPortBase": {
+              "type": "integer",
+              "description": "隔离的 worker 端口段起点端口。",
+              "minimum": 1024,
+              "maximum": 65535
+            }
+          },
+          "required": [
+            "frontendPort",
+            "backendPort",
+            "bridgePort",
+            "workerPortBase"
+          ],
+          "additionalProperties": false
         }
       },
-      "required": ["sourceDir", "homeDir"],
+      "required": [
+        "version",
+        "backups"
+      ],
       "additionalProperties": false
     },
     "owner": {
@@ -681,7 +753,35 @@
           "description": "随机所有权标识。"
         }
       },
-      "required": ["pid", "fingerprint", "token"],
+      "required": [
+        "pid",
+        "fingerprint",
+        "token"
+      ],
+      "additionalProperties": false
+    },
+    "instanceSlot": {
+      "type": "object",
+      "description": "稳定宿主实例的独立存储及端口段分配；每个槽位单独原子创建。",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "description": "分配记录版本。",
+          "enum": [
+            1
+          ]
+        },
+        "instanceKey": {
+          "type": "string",
+          "description": "由当前进程运行环境导出的稳定实例摘要，不含用户或认证信息。",
+          "minLength": 16,
+          "maxLength": 16
+        }
+      },
+      "required": [
+        "version",
+        "instanceKey"
+      ],
       "additionalProperties": false
     }
   },
@@ -720,11 +820,6 @@
       "description": "取消操作等价 stop，等待清理完成。",
       "input": "empty",
       "output": "stopped"
-    },
-    "adopt": {
-      "description": "显式交接 Unix 旧预览进程；无法核验归属时拒绝。",
-      "input": "adopt",
-      "output": "accepted"
     }
   },
   "tools": {},
@@ -735,6 +830,12 @@
     "runner": {
       "description": "插件 dataDir/runner.json；刷新、升级、停用均保留。",
       "model": "state",
+      "version": 1,
+      "scope": "ctx.paths.dataDir"
+    },
+    "instances": {
+      "description": "插件 dataDir/instances/.slots 中的实例分配文件；升级保留，避免桌面与开发实例争抢相同目录。",
+      "model": "instanceSlot",
       "version": 1,
       "scope": "ctx.paths.dataDir"
     }
