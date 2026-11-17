@@ -16,19 +16,28 @@ async function directory(t) {
   return dir;
 }
 
-test('every host uses public plugin storage without touching built-in resources', async t => {
+test('every host uses public plugin storage without reading removed host extensions', async t => {
   const dir = await directory(t);
   const options = await runtimeOptions({ paths: { dataDir: dir }, config: defaults(),
-    environment: { webUiHome: '/must-not-use', studio: null, isPreview: false },
-    resources: { claim() { throw new Error('Built-in lease must not be used'); } },
+    get environment() { throw new Error('Removed host environment must not be read'); },
+    get resources() { throw new Error('Built-in resource leases must not be read'); },
   });
   assert.ok(options.rootDir.startsWith(dir));
   assert.ok(options.sourceDir.endsWith('/source'));
   assert.equal(options.config.frontendPort, 0);
+  assert.equal(options.config.repository, 'https://github.com/EKKOLearnAI/ekko-studio');
   const r = new PreviewRunner(options); await r.init(); t.after(() => r.close());
   const s = await r.status();
   assert.equal(s.storage_mode, 'isolated');
   assert.ok(s.agent_bridge_endpoint.startsWith('tcp://127.0.0.1:'));
+});
+
+test('explicit plugin repository configuration wins without host repository metadata', async t => {
+  const dir = await directory(t);
+  const options = await runtimeOptions({ paths: { dataDir: dir }, config: { ...defaults(), repository: 'https://github.com/example/custom-studio' } });
+  assert.equal(options.config.repository, 'https://github.com/example/custom-studio');
+  const runner = new PreviewRunner(options);
+  assert.equal(runner.repo, 'https://github.com/example/custom-studio');
 });
 
 test('old SDK mounts the complete page RPC with manifest defaults and no host API', async t => {

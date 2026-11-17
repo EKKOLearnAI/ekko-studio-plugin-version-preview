@@ -21,6 +21,13 @@ for (const file of files) {
       ts.ScriptKind.JS,
     );
   function visit(node) {
+    if (ts.isPropertyAccessExpression(node) && node.expression.getText(ast) === "ctx"
+      && ["environment", "resources"].includes(node.name.text))
+      throw new Error("Removed host context dependency: " + file + ": " + node.getText(ast));
+    if (ts.isElementAccessExpression(node) && node.expression.getText(ast) === "ctx"
+      && node.argumentExpression && ts.isStringLiteral(node.argumentExpression)
+      && ["environment", "resources"].includes(node.argumentExpression.text))
+      throw new Error("Removed host context dependency: " + file + ": " + node.getText(ast));
     if (
       ts.isImportDeclaration(node) &&
       ts.isStringLiteral(node.moduleSpecifier)
@@ -55,7 +62,8 @@ const result = {
   files,
   imports,
   hostRuntimeInterfaces: [
-    "PluginContext.environment (optional metadata only)",
+    "PluginContext.config",
+    "PluginContext.signal",
     "PluginContext.paths.dataDir",
     "PluginContext.extensions.rpc",
     "PluginContext.lifecycle",

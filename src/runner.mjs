@@ -113,7 +113,7 @@ export async function logTail(file) {
 export class PreviewRunner {
   constructor({
     dataDir,
-    environment,
+    isPreview = false,
     config = {},
     signal,
     fetchImpl = fetch,
@@ -121,7 +121,7 @@ export class PreviewRunner {
     rootDir, sourceDir, homeDir, portSlot = 0,
   }) {
     this.storageMode = "isolated";
-    this.environment = environment || { isPreview: false };
+    this.isPreview = Boolean(isPreview);
     this.config = config;
     this.lifetime = signal;
     this.fetch = fetchImpl;
@@ -146,7 +146,7 @@ export class PreviewRunner {
       if (!["http:", "https:"].includes(url.protocol) || url.username || url.password)
         throw new Error("Invalid frontendOrigin");
     }
-    this.repo = repository(config.repository || environment?.studio?.repositoryUrl || "https://github.com/EKKOLearnAI/ekko-studio");
+    this.repo = repository(config.repository || "https://github.com/EKKOLearnAI/ekko-studio");
     this.updateBridge();
     this.actionLog = join(this.dataDir, "preview-action.log");
     this.devLog = join(this.dataDir, "preview-dev.log");
@@ -352,7 +352,7 @@ export class PreviewRunner {
       last_action_message: this.state.last?.message || "",
       last_action_code: this.state.last?.code || "",
       backups: [...this.state.backups],
-      recursive_blocked: this.environment.isPreview,
+      recursive_blocked: this.isPreview,
       source_commit: await readFile(
         join(this.source, ".preview-commit"),
         "utf8",
@@ -384,7 +384,7 @@ export class PreviewRunner {
     if (this.closed || this.stopping)
       throw new Error("Plugin is closing or stopping");
     this.lifetime?.throwIfAborted();
-    if (this.environment.isPreview)
+    if (this.isPreview)
       throw new Error("Recursive version preview is disabled");
   }
   async portsFree() {
