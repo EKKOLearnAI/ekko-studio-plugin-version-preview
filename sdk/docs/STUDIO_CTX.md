@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MIT -->
+
 # Studio SDK v1 上下文与能力
 
 精确类型由 sdk/src/index.ts 统一导出，按 core/state/host/browser/sessions/bots/contexts/agents/http 组织源码。

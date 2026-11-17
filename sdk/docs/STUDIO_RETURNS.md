@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MIT -->
+
 # 插件需要回传给 Studio 什么
 
 所有 JSON 值都必须可序列化：禁止 undefined、NaN、Infinity、函数、BigInt、循环引用和未编码的二进制。

@@ -54,8 +54,8 @@ Unix/macOS 的“接管旧预览”经用户在页面确认后，核实监听进
 
 ## 许可证
 
-插件自有代码与随附 SDK 的代码、类型、harness、模板采用 [MIT](LICENSE)。
-两份含第三方贡献的 SDK 指南及其副本保留原 BSL 1.1，完整范围、署名和原许可见
-[第三方许可声明](THIRD_PARTY_NOTICES.md)。没有将这些指南或 Studio 核心改标为 MIT。
-包元数据以 `MIT AND BUSL-1.1` 如实声明发行包内同时存在的许可。
+本仓库的插件、随附 SDK、模板、工具和全部指南统一采用 [MIT](LICENSE)，包括
+STUDIO_CTX.md、STUDIO_RETURNS.md 及其 sdk/docs 副本。指南正文和贡献者署名保留，
+来源及外部依赖的许可说明见 [署名与第三方声明](THIRD_PARTY_NOTICES.md)。
+此变更仅针对本插件仓库，不改变 Studio 主仓库整仓许可或外部 npm 依赖许可。
 `package.json` 的 `private: true` 仅防止误发布 npm，不代表 GitHub 仓库私有。

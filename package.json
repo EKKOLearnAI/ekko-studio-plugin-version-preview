@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Independent Studio source preview runner",
-  "license": "MIT AND BUSL-1.1",
+  "license": "MIT",
   "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-version-preview",
   "engines": {
     "node": ">=23"
