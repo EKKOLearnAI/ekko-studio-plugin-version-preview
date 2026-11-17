@@ -1,6 +1,6 @@
 # Independent Studio Version Preview
 
-私有开发插件 0.1.0，独立提供前端控制页、RPC、源码下载、依赖安装、运行监督、日志与持久化。插件不导入、复制或调用 Studio 内置版本预览实现；也不调用其六个业务 API。
+独立版本预览插件 0.1.0，独立提供前端控制页、RPC、源码下载、依赖安装、运行监督、日志与持久化。插件不导入、复制或调用 Studio 内置版本预览实现；也不调用其六个业务 API。
 
 宿主内置页面、路由和执行器仍保留。使用插件时，公开资源租约负责防止两套控制器同时操作同一资源，未来移除内置模块只需让宿主继续提供同名资源描述。
 
@@ -18,7 +18,7 @@ npm run test:e2e
 
 在含上述接口的 Studio 插件中心，从本地插件绝对路径安装并启用；开发可使用同一宿主的 `ekko-studio plugins link <absolute-directory>`。运行时不需要插件的开发依赖；只依赖 Node 标准库和自身的 `tar` 包，启动的目标 Studio 源码会自行安装其开发依赖。
 
-私有 GitHub 安装还要求运行宿主的 npm/Git 有仓库读取权限；插件不收集或保存 GitHub token。未发布 npm 包、GitHub Release，未自动安装到真实用户环境。预览 RPC 和租约没有管理员角色校验；Studio 原有可信插件安装管理规则保持原状。
+本仓库公开提供源码；预览私有目标仓库时仍需本机 Git 的读取权限。插件不收集或保存 GitHub token。未发布 npm 包、GitHub Release，未自动安装到真实用户环境。预览 RPC 和租约没有管理员角色校验；Studio 原有可信插件安装管理规则保持原状。
 
 ## 功能与运行方式
 
@@ -51,3 +51,11 @@ Unix/macOS 的“接管旧预览”经用户在页面确认后，核实监听进
 只支持 GitHub 源码。私有源码 Git 鉴权使用本机 Git；没有 token 归档回退。归档拒绝链接、特殊文件和越界路径；含这类文件的源码会安全失败。归档来源 commit 暂为空。前后端就绪不等于 Agent 聊天或全部 bridge worker 都已验收。后端无 nodemon 文件监听；前端保留 Vite 热更新。未验证所有历史版本、Windows/Linux 或桌面 Electron 的实际运行。
 
 维护的测试覆盖真实 Node/Vite/ts-node 测试服务、取消/重载/孙进程清理、备份、接管与 UI；本次另外在隔离数据目录准备了真实 main 和 v1.0.9，并对两者完成依赖安装、启动和停止；main 页面还通过真实浏览器渲染检查。详细证据由任务报告提供，不打包进插件。
+
+## 许可证
+
+插件自有代码与随附 SDK 的代码、类型、harness、模板采用 [MIT](LICENSE)。
+两份含第三方贡献的 SDK 指南及其副本保留原 BSL 1.1，完整范围、署名和原许可见
+[第三方许可声明](THIRD_PARTY_NOTICES.md)。没有将这些指南或 Studio 核心改标为 MIT。
+包元数据以 `MIT AND BUSL-1.1` 如实声明发行包内同时存在的许可。
+`package.json` 的 `private: true` 仅防止误发布 npm，不代表 GitHub 仓库私有。

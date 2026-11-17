@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Independent Studio source preview runner",
-  "license": "BUSL-1.1",
+  "license": "MIT AND BUSL-1.1",
   "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-version-preview",
   "engines": {
     "node": ">=23"
@@ -37,6 +37,7 @@
     "plugin.harness.json",
     "AGENTS.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ]
 }
