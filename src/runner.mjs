@@ -13,7 +13,7 @@ import {
   realpath,
 } from "node:fs/promises";
 import { existsSync, openSync, closeSync } from "node:fs";
-import { join, dirname, resolve, isAbsolute } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";

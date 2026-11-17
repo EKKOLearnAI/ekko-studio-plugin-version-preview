@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   assertContracts,
   registerRpc,
@@ -13,15 +14,17 @@ const contract = assertContracts(
 /** @param {import('./sdk/src/index').PluginContext} ctx */
 export async function apply(ctx) {
   // Capture the plugin lifetime during apply, never a request-scoped run.signal.
+  if (!ctx.environment?.webUiHome)
+    throw new Error("This plugin requires Studio installation metadata");
   if (!ctx.resources)
     throw new Error("This plugin requires Studio host resource leases");
   const lease = await ctx.resources.claim("studio.version-preview");
   validateModel(contract, "lease", lease.data);
   if (
-    lease.data?.sourceDir !==
-      `${ctx.environment?.webUiHome}/hermes-web-ui-pereview` ||
-    lease.data?.homeDir !==
-      `${ctx.environment?.webUiHome}/hermes-web-ui-pereview-home`
+    resolve(lease.data.sourceDir) !==
+      join(resolve(ctx.environment.webUiHome), "hermes-web-ui-pereview") ||
+    resolve(lease.data.homeDir) !==
+      join(resolve(ctx.environment.webUiHome), "hermes-web-ui-pereview-home")
   )
     throw new Error("Host legacy preview paths are incompatible");
   const runner = new PreviewRunner({
