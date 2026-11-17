@@ -1,7 +1,7 @@
 {
   "id": "version-preview",
   "name": "Version Preview",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "apiVersion": 1,
   "description": "Preview Studio versions with isolated source, data and services.",
   "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-version-preview",
@@ -80,14 +80,14 @@
       "id": "preview",
       "title": "Version Preview",
       "slot": "settings",
-      "icon": "assets/logo.png"
+      "icon": "package"
     }
   ],
   "navigation": {
     "settings": [
       {
         "viewId": "preview",
-        "icon": "assets/logo.png",
+        "icon": "package",
         "order": 90
       }
     ]
