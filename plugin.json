@@ -1,0 +1,90 @@
+{
+  "id": "version-preview",
+  "name": "版本预览 / Version Preview",
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "description": "独立管理 Studio GitHub 源码预览与既有预览数据。",
+  "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-version-preview",
+  "license": "BUSL-1.1",
+  "server": "server.mjs",
+  "client": "client.mjs",
+  "permissions": ["api.write", "ui"],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "repository": {
+        "type": "string",
+        "description": "覆盖宿主 GitHub 仓库；留空使用宿主包 repository。",
+        "default": ""
+      },
+      "nodePath": {
+        "type": "string",
+        "description": "独立 Node 可执行文件绝对路径；留空自动探测。",
+        "default": ""
+      },
+      "npmCliPath": {
+        "type": "string",
+        "description": "npm-cli.js 绝对路径；留空自动探测。",
+        "default": ""
+      },
+      "frontendPort": {
+        "type": "integer",
+        "description": "预览前端端口。",
+        "minimum": 1024,
+        "maximum": 65535,
+        "default": 8651
+      },
+      "backendPort": {
+        "type": "integer",
+        "description": "预览后端端口。",
+        "minimum": 1024,
+        "maximum": 65535,
+        "default": 8650
+      },
+      "bridgePort": {
+        "type": "integer",
+        "description": "TCP bridge 端口。",
+        "minimum": 1024,
+        "maximum": 65535,
+        "default": 18650
+      },
+      "workerPortBase": {
+        "type": "integer",
+        "description": "Bridge worker 起始端口。",
+        "minimum": 1024,
+        "maximum": 65000,
+        "default": 19650
+      },
+      "bridgeTransport": {
+        "type": "string",
+        "description": "Agent bridge 传输方式。",
+        "enum": ["auto", "tcp", "ipc"],
+        "default": "auto"
+      },
+      "frontendOrigin": {
+        "type": "string",
+        "description": "远程反向代理预览入口；留空使用浏览器所在主机及前端端口。",
+        "default": ""
+      }
+    },
+    "additionalProperties": false
+  },
+  "views": [
+    {
+      "id": "preview",
+      "title": "版本预览 / Version Preview",
+      "slot": "page",
+      "icon": "code"
+    }
+  ],
+  "navigation": {
+    "main": [
+      {
+        "viewId": "preview",
+        "title": "版本预览插件",
+        "icon": "code",
+        "order": 90
+      }
+    ]
+  }
+}

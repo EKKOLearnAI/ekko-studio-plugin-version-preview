@@ -1,0 +1,743 @@
+{
+  "schemaVersion": 1,
+  "description": "版本预览插件的 RPC 与持久化边界合同；全局单实例。",
+  "models": {
+    "empty": {
+      "type": "null",
+      "description": "无参数；宿主省略 input 时传 null。"
+    },
+    "ref": {
+      "type": "object",
+      "description": "准备源码请求。",
+      "properties": {
+        "tag": {
+          "type": "string",
+          "description": "Git ref；允许字母数字点下划线斜杠横线；拒绝 .. 和参数前缀。",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": ["tag"],
+      "additionalProperties": false
+    },
+    "start": {
+      "type": "object",
+      "description": "启动请求，可选切换源码 ref。",
+      "properties": {
+        "tag": {
+          "type": "string",
+          "description": "可选 ref；缺省使用已准备源码。",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "adopt": {
+      "type": "object",
+      "description": "显式停止可验证的旧预览进程，沿用原数据。",
+      "properties": {
+        "confirm": {
+          "type": "boolean",
+          "description": "用户在界面确认旧进程交接。",
+          "enum": [true]
+        }
+      },
+      "required": ["confirm"],
+      "additionalProperties": false
+    },
+    "status": {
+      "type": "object",
+      "description": "全局单实例预览状态。",
+      "properties": {
+        "preview_dir": {
+          "type": "string",
+          "description": "源码目录绝对路径；沿用旧拼写。"
+        },
+        "webui_home": {
+          "type": "string",
+          "description": "独立预览 Web UI home；不删除旧数据。"
+        },
+        "current_tag": {
+          "type": "string",
+          "description": "已准备的 ref，缺失为空字符串。"
+        },
+        "frontend_url": {
+          "type": "string",
+          "description": "预览地址；未配置时浏览器替换 localhost 主机。"
+        },
+        "agent_bridge_endpoint": {
+          "type": "string",
+          "description": "预览专用 bridge endpoint。"
+        },
+        "log_path": {
+          "type": "string",
+          "description": "开发日志路径。"
+        },
+        "dev_log_path": {
+          "type": "string",
+          "description": "开发日志路径。"
+        },
+        "action_log_path": {
+          "type": "string",
+          "description": "操作日志路径。"
+        },
+        "dev_log": {
+          "type": "string",
+          "description": "开发日志最后 24000 字节。"
+        },
+        "action_log": {
+          "type": "string",
+          "description": "插件操作日志最后 24000 字节。"
+        },
+        "active_action": {
+          "type": "string",
+          "description": "当前后台任务名称，无任务为空。"
+        },
+        "active_action_started_at": {
+          "type": "string",
+          "description": "当前任务 ISO 时间，无任务为空。"
+        },
+        "last_action": {
+          "type": "string",
+          "description": "最近任务名称，无记录为空。"
+        },
+        "last_action_completed_at": {
+          "type": "string",
+          "description": "最近任务完成 ISO 时间，无记录为空。"
+        },
+        "last_action_message": {
+          "type": "string",
+          "description": "完成、失败或取消原因。"
+        },
+        "last_action_code": {
+          "type": "string",
+          "description": "取消 cancelled、意外退出 interrupted、失败 preview_failed 或空。"
+        },
+        "source_commit": {
+          "type": "string",
+          "description": "Git 完整 commit SHA；归档下载暂为空。"
+        },
+        "exists": {
+          "type": "boolean",
+          "description": "源码目录存在。"
+        },
+        "has_package": {
+          "type": "boolean",
+          "description": "源码包名通过验证。"
+        },
+        "installed": {
+          "type": "boolean",
+          "description": "关键依赖文件存在，启动还会加载 node-pty 验证。"
+        },
+        "running": {
+          "type": "boolean",
+          "description": "持久进程身份仍匹配。"
+        },
+        "last_action_success": {
+          "type": "boolean",
+          "description": "最近任务成功；无任务为 false。"
+        },
+        "recursive_blocked": {
+          "type": "boolean",
+          "description": "当前宿主是预览子实例。"
+        },
+        "pid": {
+          "type": "integer",
+          "description": "运行根进程 PID；未运行时为 0。",
+          "minimum": 0
+        },
+        "frontend_port": {
+          "type": "integer",
+          "description": "前端 TCP 端口。",
+          "minimum": 1024,
+          "maximum": 65535
+        },
+        "backups": {
+          "type": "array",
+          "description": "保留的旧源码目录；插件从不自动删除。",
+          "items": {
+            "type": "string",
+            "description": "备份目录绝对路径。"
+          }
+        }
+      },
+      "required": [
+        "preview_dir",
+        "webui_home",
+        "current_tag",
+        "frontend_url",
+        "agent_bridge_endpoint",
+        "log_path",
+        "dev_log_path",
+        "action_log_path",
+        "dev_log",
+        "action_log",
+        "active_action",
+        "active_action_started_at",
+        "last_action",
+        "last_action_completed_at",
+        "last_action_message",
+        "last_action_code",
+        "source_commit",
+        "exists",
+        "has_package",
+        "installed",
+        "running",
+        "last_action_success",
+        "recursive_blocked",
+        "pid",
+        "frontend_port",
+        "backups"
+      ],
+      "additionalProperties": false
+    },
+    "accepted": {
+      "type": "object",
+      "description": "后台任务接受快照；accepted 不代表成功，轮询 status 判断结果。",
+      "properties": {
+        "preview_dir": {
+          "type": "string",
+          "description": "源码目录绝对路径；沿用旧拼写。"
+        },
+        "webui_home": {
+          "type": "string",
+          "description": "独立预览 Web UI home；不删除旧数据。"
+        },
+        "current_tag": {
+          "type": "string",
+          "description": "已准备的 ref，缺失为空字符串。"
+        },
+        "frontend_url": {
+          "type": "string",
+          "description": "预览地址；未配置时浏览器替换 localhost 主机。"
+        },
+        "agent_bridge_endpoint": {
+          "type": "string",
+          "description": "预览专用 bridge endpoint。"
+        },
+        "log_path": {
+          "type": "string",
+          "description": "开发日志路径。"
+        },
+        "dev_log_path": {
+          "type": "string",
+          "description": "开发日志路径。"
+        },
+        "action_log_path": {
+          "type": "string",
+          "description": "操作日志路径。"
+        },
+        "dev_log": {
+          "type": "string",
+          "description": "开发日志最后 24000 字节。"
+        },
+        "action_log": {
+          "type": "string",
+          "description": "插件操作日志最后 24000 字节。"
+        },
+        "active_action": {
+          "type": "string",
+          "description": "当前后台任务名称，无任务为空。"
+        },
+        "active_action_started_at": {
+          "type": "string",
+          "description": "当前任务 ISO 时间，无任务为空。"
+        },
+        "last_action": {
+          "type": "string",
+          "description": "最近任务名称，无记录为空。"
+        },
+        "last_action_completed_at": {
+          "type": "string",
+          "description": "最近任务完成 ISO 时间，无记录为空。"
+        },
+        "last_action_message": {
+          "type": "string",
+          "description": "完成、失败或取消原因。"
+        },
+        "last_action_code": {
+          "type": "string",
+          "description": "取消 cancelled、意外退出 interrupted、失败 preview_failed 或空。"
+        },
+        "source_commit": {
+          "type": "string",
+          "description": "Git 完整 commit SHA；归档下载暂为空。"
+        },
+        "exists": {
+          "type": "boolean",
+          "description": "源码目录存在。"
+        },
+        "has_package": {
+          "type": "boolean",
+          "description": "源码包名通过验证。"
+        },
+        "installed": {
+          "type": "boolean",
+          "description": "关键依赖文件存在，启动还会加载 node-pty 验证。"
+        },
+        "running": {
+          "type": "boolean",
+          "description": "持久进程身份仍匹配。"
+        },
+        "last_action_success": {
+          "type": "boolean",
+          "description": "最近任务成功；无任务为 false。"
+        },
+        "recursive_blocked": {
+          "type": "boolean",
+          "description": "当前宿主是预览子实例。"
+        },
+        "pid": {
+          "type": "integer",
+          "description": "运行根进程 PID；未运行时为 0。",
+          "minimum": 0
+        },
+        "frontend_port": {
+          "type": "integer",
+          "description": "前端 TCP 端口。",
+          "minimum": 1024,
+          "maximum": 65535
+        },
+        "backups": {
+          "type": "array",
+          "description": "保留的旧源码目录；插件从不自动删除。",
+          "items": {
+            "type": "string",
+            "description": "备份目录绝对路径。"
+          }
+        },
+        "success": {
+          "type": "boolean",
+          "description": "请求已接受。",
+          "enum": [true]
+        },
+        "accepted": {
+          "type": "boolean",
+          "description": "异步任务已接受。",
+          "enum": [true]
+        }
+      },
+      "required": [
+        "preview_dir",
+        "webui_home",
+        "current_tag",
+        "frontend_url",
+        "agent_bridge_endpoint",
+        "log_path",
+        "dev_log_path",
+        "action_log_path",
+        "dev_log",
+        "action_log",
+        "active_action",
+        "active_action_started_at",
+        "last_action",
+        "last_action_completed_at",
+        "last_action_message",
+        "last_action_code",
+        "source_commit",
+        "exists",
+        "has_package",
+        "installed",
+        "running",
+        "last_action_success",
+        "recursive_blocked",
+        "pid",
+        "frontend_port",
+        "backups",
+        "success",
+        "accepted"
+      ],
+      "additionalProperties": false
+    },
+    "stopped": {
+      "type": "object",
+      "description": "取消后台任务并停止已归属进程后的状态。",
+      "properties": {
+        "preview_dir": {
+          "type": "string",
+          "description": "源码目录绝对路径；沿用旧拼写。"
+        },
+        "webui_home": {
+          "type": "string",
+          "description": "独立预览 Web UI home；不删除旧数据。"
+        },
+        "current_tag": {
+          "type": "string",
+          "description": "已准备的 ref，缺失为空字符串。"
+        },
+        "frontend_url": {
+          "type": "string",
+          "description": "预览地址；未配置时浏览器替换 localhost 主机。"
+        },
+        "agent_bridge_endpoint": {
+          "type": "string",
+          "description": "预览专用 bridge endpoint。"
+        },
+        "log_path": {
+          "type": "string",
+          "description": "开发日志路径。"
+        },
+        "dev_log_path": {
+          "type": "string",
+          "description": "开发日志路径。"
+        },
+        "action_log_path": {
+          "type": "string",
+          "description": "操作日志路径。"
+        },
+        "dev_log": {
+          "type": "string",
+          "description": "开发日志最后 24000 字节。"
+        },
+        "action_log": {
+          "type": "string",
+          "description": "插件操作日志最后 24000 字节。"
+        },
+        "active_action": {
+          "type": "string",
+          "description": "当前后台任务名称，无任务为空。"
+        },
+        "active_action_started_at": {
+          "type": "string",
+          "description": "当前任务 ISO 时间，无任务为空。"
+        },
+        "last_action": {
+          "type": "string",
+          "description": "最近任务名称，无记录为空。"
+        },
+        "last_action_completed_at": {
+          "type": "string",
+          "description": "最近任务完成 ISO 时间，无记录为空。"
+        },
+        "last_action_message": {
+          "type": "string",
+          "description": "完成、失败或取消原因。"
+        },
+        "last_action_code": {
+          "type": "string",
+          "description": "取消 cancelled、意外退出 interrupted、失败 preview_failed 或空。"
+        },
+        "source_commit": {
+          "type": "string",
+          "description": "Git 完整 commit SHA；归档下载暂为空。"
+        },
+        "exists": {
+          "type": "boolean",
+          "description": "源码目录存在。"
+        },
+        "has_package": {
+          "type": "boolean",
+          "description": "源码包名通过验证。"
+        },
+        "installed": {
+          "type": "boolean",
+          "description": "关键依赖文件存在，启动还会加载 node-pty 验证。"
+        },
+        "running": {
+          "type": "boolean",
+          "description": "持久进程身份仍匹配。"
+        },
+        "last_action_success": {
+          "type": "boolean",
+          "description": "最近任务成功；无任务为 false。"
+        },
+        "recursive_blocked": {
+          "type": "boolean",
+          "description": "当前宿主是预览子实例。"
+        },
+        "pid": {
+          "type": "integer",
+          "description": "运行根进程 PID；未运行时为 0。",
+          "minimum": 0
+        },
+        "frontend_port": {
+          "type": "integer",
+          "description": "前端 TCP 端口。",
+          "minimum": 1024,
+          "maximum": 65535
+        },
+        "backups": {
+          "type": "array",
+          "description": "保留的旧源码目录；插件从不自动删除。",
+          "items": {
+            "type": "string",
+            "description": "备份目录绝对路径。"
+          }
+        },
+        "success": {
+          "type": "boolean",
+          "description": "清理已完成。",
+          "enum": [true]
+        }
+      },
+      "required": [
+        "preview_dir",
+        "webui_home",
+        "current_tag",
+        "frontend_url",
+        "agent_bridge_endpoint",
+        "log_path",
+        "dev_log_path",
+        "action_log_path",
+        "dev_log",
+        "action_log",
+        "active_action",
+        "active_action_started_at",
+        "last_action",
+        "last_action_completed_at",
+        "last_action_message",
+        "last_action_code",
+        "source_commit",
+        "exists",
+        "has_package",
+        "installed",
+        "running",
+        "last_action_success",
+        "recursive_blocked",
+        "pid",
+        "frontend_port",
+        "backups",
+        "success"
+      ],
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "object",
+      "description": "main 加最多八个版本 tag。",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "description": "按版本倒序排列。",
+          "maxItems": 9,
+          "items": {
+            "type": "object",
+            "description": "Git ref。",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "main 或版本 tag。"
+              },
+              "sha": {
+                "type": "string",
+                "description": "Git SHA；main/归档未知时为空。"
+              }
+            },
+            "required": ["name", "sha"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["tags"],
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "object",
+      "description": "runner.json v1；不存在可选字段表示无当前作业或进程。",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "description": "状态结构版本。",
+          "enum": [1]
+        },
+        "active": {
+          "type": "object",
+          "description": "作业记录。",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "随机作业 ID。"
+            },
+            "name": {
+              "type": "string",
+              "description": "操作名称。"
+            },
+            "startedAt": {
+              "type": "string",
+              "description": "ISO 开始时间。"
+            },
+            "success": {
+              "type": "boolean",
+              "description": "完成结果。"
+            },
+            "message": {
+              "type": "string",
+              "description": "完成信息。"
+            },
+            "code": {
+              "type": "string",
+              "description": "结果代码。"
+            },
+            "completedAt": {
+              "type": "string",
+              "description": "ISO 完成时间。"
+            }
+          },
+          "required": ["id", "name", "startedAt"],
+          "additionalProperties": false
+        },
+        "last": {
+          "type": "object",
+          "description": "作业记录。",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "随机作业 ID。"
+            },
+            "name": {
+              "type": "string",
+              "description": "操作名称。"
+            },
+            "startedAt": {
+              "type": "string",
+              "description": "ISO 开始时间。"
+            },
+            "success": {
+              "type": "boolean",
+              "description": "完成结果。"
+            },
+            "message": {
+              "type": "string",
+              "description": "完成信息。"
+            },
+            "code": {
+              "type": "string",
+              "description": "结果代码。"
+            },
+            "completedAt": {
+              "type": "string",
+              "description": "ISO 完成时间。"
+            }
+          },
+          "required": ["id", "name", "startedAt"],
+          "additionalProperties": false
+        },
+        "process": {
+          "type": "object",
+          "description": "受控独立进程组身份。",
+          "properties": {
+            "pid": {
+              "type": "integer",
+              "description": "进程组根 PID。",
+              "minimum": 1
+            },
+            "fingerprint": {
+              "type": "string",
+              "description": "系统进程创建时间，用于拒绝 PID 复用。"
+            },
+            "sourceDir": {
+              "type": "string",
+              "description": "对应源码目录。"
+            }
+          },
+          "required": ["pid", "fingerprint", "sourceDir"],
+          "additionalProperties": false
+        },
+        "backups": {
+          "type": "array",
+          "description": "保留的旧源码目录；插件从不自动删除。",
+          "items": {
+            "type": "string",
+            "description": "备份目录绝对路径。"
+          }
+        }
+      },
+      "required": ["version", "backups"],
+      "additionalProperties": false
+    },
+    "lease": {
+      "type": "object",
+      "description": "公开宿主资源租约提供的历史目录；只读元数据。",
+      "properties": {
+        "sourceDir": {
+          "type": "string",
+          "description": "历史源码目录绝对路径。"
+        },
+        "homeDir": {
+          "type": "string",
+          "description": "历史预览 Web UI 数据目录绝对路径。"
+        }
+      },
+      "required": ["sourceDir", "homeDir"],
+      "additionalProperties": false
+    },
+    "owner": {
+      "type": "object",
+      "description": "本插件原子所有权锁文件。",
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "拥有锁的宿主进程 PID。"
+        },
+        "fingerprint": {
+          "type": "string",
+          "description": "宿主进程创建时间。"
+        },
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "description": "随机所有权标识。"
+        }
+      },
+      "required": ["pid", "fingerprint", "token"],
+      "additionalProperties": false
+    }
+  },
+  "rpc": {
+    "status": {
+      "description": "读取状态与有界日志；无需管理员身份。",
+      "input": "empty",
+      "output": "status"
+    },
+    "tags": {
+      "description": "Git 远端标签，失败回退 GitHub API；缓存五分钟。",
+      "input": "empty",
+      "output": "tags"
+    },
+    "prepare": {
+      "description": "先暂存下载再备份切换，复用预览数据。",
+      "input": "ref",
+      "output": "accepted"
+    },
+    "install": {
+      "description": "安装开发依赖并 rebuild node-pty；最长二十分钟。",
+      "input": "empty",
+      "output": "accepted"
+    },
+    "start": {
+      "description": "启动独立预览；前后端均响应后成功。",
+      "input": "start",
+      "output": "accepted"
+    },
+    "stop": {
+      "description": "取消长任务并清理所有已归属进程。",
+      "input": "empty",
+      "output": "stopped"
+    },
+    "cancel": {
+      "description": "取消操作等价 stop，等待清理完成。",
+      "input": "empty",
+      "output": "stopped"
+    },
+    "adopt": {
+      "description": "显式交接 Unix 旧预览进程；无法核验归属时拒绝。",
+      "input": "adopt",
+      "output": "accepted"
+    }
+  },
+  "tools": {},
+  "commands": {},
+  "actions": {},
+  "events": {},
+  "storage": {
+    "runner": {
+      "description": "插件 dataDir/runner.json；刷新、升级、停用均保留。",
+      "model": "state",
+      "version": 1,
+      "scope": "ctx.paths.dataDir"
+    }
+  },
+  "checkpoints": {}
+}

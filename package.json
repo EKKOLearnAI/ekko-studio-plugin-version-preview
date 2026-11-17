@@ -1,0 +1,42 @@
+{
+  "name": "@ekkolearnai/studio-plugin-version-preview",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent Studio source preview runner",
+  "license": "BUSL-1.1",
+  "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-version-preview",
+  "engines": {
+    "node": ">=23"
+  },
+  "scripts": {
+    "build": "node --check server.mjs && node --check client.mjs && node --check src/runner.mjs && node --check src/preview-child.mjs",
+    "harness:check": "node scripts/plugin-harness.mjs check",
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "playwright test",
+    "prepack": "npm run harness:check && npm test"
+  },
+  "dependencies": {
+    "tar": "^7.5.16"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "vite": "^8.3.4",
+    "typescript": "~6.0.2",
+    "ts-node": "^10.9.2"
+  },
+  "files": [
+    "plugin.json",
+    "server.mjs",
+    "client.mjs",
+    "src/*.mjs",
+    "contracts",
+    "docs",
+    "sdk",
+    "scripts",
+    "plugin.harness.json",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
+  ]
+}
