@@ -2,9 +2,10 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { NAlert, NButton, NDescriptions, NDescriptionsItem, NSelect, NSpace, NTag } from 'naive-ui'
 import { messages } from './messages.js'
+import { resolvePluginLocale } from '../../sdk/src/localization.mjs'
 const props = defineProps<{ context: any }>()
 const ctx = props.context
-const strings = messages[ctx.locale?.startsWith('zh') ? 'zh' : 'en']
+const strings = messages[resolvePluginLocale(ctx.locale, Object.keys(messages))]
 const t = (key: string) => strings[key.replace('githubPreview.', '')] || key
 const message = {
   success: (text: string) => ctx.ui.notify(text, 'success'),

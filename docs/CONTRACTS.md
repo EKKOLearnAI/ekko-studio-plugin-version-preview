@@ -15,3 +15,5 @@ prepare/install/start 返回 accepted 快照，需观察 active_action 与 last_
 stop/cancel 会等待下载、安装、启动和受控进程树结束。插件关闭执行相同清理；失败保留归属证据并报错。作业失败、取消、意外退出分别为 preview_failed/cancelled/interrupted。所有后台作业只持有插件根 signal，不持有已结束 RPC 的调用上下文。
 
 版本列表保留 main 和最多八个 Studio/Web UI Tag。Tag 必须匹配根 package.json 的 Studio 包名及版本（去掉 v）；同仓库中的 Android/App 发布不作为 Studio 版本。tagPackage 模型校验上游元数据；插件优先读取提交对应的公开源码元数据，代理环境可使用 curl；不可用或需要 Git 凭据时使用独立 Git 浅缓存，兼容 GitHub API 回退，刷新并发合并、结果缓存五分钟。无法验证时报告错误，不猜测版本类型。
+
+名称、描述、入口及客户端文案必须覆盖 PLUGIN_LOCALES 的全部 Studio 语言（当前 12 种），由新版 SDK harness 检查清单完整性。插件客户端逐种提供相同文案键；旧语言集与未知语言仅在运行时兼容回退。

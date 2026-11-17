@@ -106,6 +106,76 @@
       "views": {
         "preview": "版本预览"
       }
+    },
+    "zh-TW": {
+      "name": "版本預覽",
+      "description": "獨立預覽 Studio 版本，自動管理原始碼、資料目錄與執行服務。",
+      "views": {
+        "preview": "版本預覽"
+      }
+    },
+    "ja": {
+      "name": "バージョンプレビュー",
+      "description": "ソースコード、データ、サービスを分離して Studio の各バージョンをプレビューします。",
+      "views": {
+        "preview": "バージョンプレビュー"
+      }
+    },
+    "ko": {
+      "name": "버전 미리보기",
+      "description": "소스 코드, 데이터 및 서비스를 격리해 Studio 버전을 미리 봅니다.",
+      "views": {
+        "preview": "버전 미리보기"
+      }
+    },
+    "fr": {
+      "name": "Aperçu de version",
+      "description": "Prévisualisez les versions de Studio avec du code source, des données et des services isolés.",
+      "views": {
+        "preview": "Aperçu de version"
+      }
+    },
+    "es": {
+      "name": "Vista previa de versión",
+      "description": "Previsualiza versiones de Studio con código, datos y servicios aislados.",
+      "views": {
+        "preview": "Vista previa de versión"
+      }
+    },
+    "de": {
+      "name": "Versionsvorschau",
+      "description": "Studio-Versionen mit getrenntem Quellcode, eigenen Daten und Diensten in der Vorschau ausführen.",
+      "views": {
+        "preview": "Versionsvorschau"
+      }
+    },
+    "pt": {
+      "name": "Prévia de versão",
+      "description": "Visualize versões do Studio com código-fonte, dados e serviços isolados.",
+      "views": {
+        "preview": "Prévia de versão"
+      }
+    },
+    "ru": {
+      "name": "Предпросмотр версий",
+      "description": "Предварительный просмотр версий Studio с изолированными исходным кодом, данными и службами.",
+      "views": {
+        "preview": "Предпросмотр версий"
+      }
+    },
+    "ar": {
+      "name": "معاينة الإصدار",
+      "description": "عاين إصدارات Studio باستخدام شيفرة مصدرية وبيانات وخدمات معزولة.",
+      "views": {
+        "preview": "معاينة الإصدار"
+      }
+    },
+    "tr": {
+      "name": "Sürüm önizlemesi",
+      "description": "Studio sürümlerini yalıtılmış kaynak kodu, veri ve hizmetlerle önizleyin.",
+      "views": {
+        "preview": "Sürüm önizlemesi"
+      }
     }
   },
   "icon": "assets/logo.png"

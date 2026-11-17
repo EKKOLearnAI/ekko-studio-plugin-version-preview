@@ -1,3 +1,5 @@
+import { messages } from '../../src/client/messages.js';
+import { PLUGIN_LOCALES, resolvePluginLocale } from '../../sdk/src/localization.mjs';
 import { test, expect } from '@playwright/test';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -41,7 +43,7 @@ async function mount(page, options = {}) {
       ui: { notify: (message, level) => window.notices.push({ message, level }) },
     });
   }, { state, options });
-  await expect(page.getByRole('button', { name: options.locale === 'en' ? 'Refresh' : '刷新', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: messages[resolvePluginLocale(options.locale || 'zh')].refresh, exact: true })).toBeVisible();
 }
 
 test('matches built-in actions, status rows and dependency gating', async ({ page }) => {
@@ -104,4 +106,18 @@ test('English recursive preview disables actions and explains the restriction', 
   await expect(page.getByText('A preview instance cannot launch another preview.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start Preview', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Prepare Code', exact: true })).toBeDisabled();
+});
+
+test('all Studio languages render translated actions, notices and status labels', async ({ page }) => {
+  for (const locale of PLUGIN_LOCALES) {
+    const text = messages[locale];
+    await mount(page, { locale });
+    await expect(page.getByRole('button')).toHaveText([text.prepare, text.install, text.start, text.stop, text.refresh]);
+    await expect(page.getByText(text.note, { exact: true })).toBeVisible();
+    await expect(page.getByText(text.currentTag, { exact: true })).toBeVisible();
+    await expect(page.locator('.version-preview-client')).toHaveAttribute('lang', locale);
+    await expect(page.locator('.version-preview-client')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
+    await page.getByRole('button', { name: text.refresh, exact: true }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
 });

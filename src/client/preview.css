@@ -102,3 +102,5 @@ code {
 
 .log-box:last-child{border-bottom:0}
 @media(max-width:600px){.tag-select{width:100%}.control-row > .n-space{width:100%}}
+
+.version-preview-client pre, .version-preview-client code { direction: ltr; unicode-bidi: isolate; text-align: left; }
