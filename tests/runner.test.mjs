@@ -44,12 +44,9 @@ async function fixture(t, options = {}) {
   const r = new PreviewRunner({
     dataDir: join(root, "plugins/plugin-data/version-preview"),
     rootDir: root,
-    environment: {
-      webUiHome: root,
-      studio: { repositoryUrl: "https://github.com/example/studio" },
-      isPreview: false,
-    },
+    isPreview: false,
     config: {
+      repository: "https://github.com/example/studio",
       frontendPort: ports[0],
       backendPort: ports[1],
       bridgePort: ports[2],
@@ -160,7 +157,7 @@ test("reuses plugin-owned source/data without modifying either; lock excludes a 
   const other = new PreviewRunner({
     dataDir: r.dataDir,
     rootDir: r.root,
-    environment: r.environment,
+    isPreview: r.isPreview,
     config: r.config,
   });
   await assert.rejects(other.init(), /owner/);
@@ -361,7 +358,7 @@ test("restart marks interrupted jobs and preserves source/home", async (t) => {
   const recovered = new PreviewRunner({
     dataDir: r.dataDir,
     rootDir: r.root,
-    environment: r.environment,
+    isPreview: r.isPreview,
     config: r.config,
   });
   await recovered.init();
@@ -370,9 +367,9 @@ test("restart marks interrupted jobs and preserves source/home", async (t) => {
 });
 test("recursive preview and symlink paths are refused", async (t) => {
   const r = await fixture(t);
-  r.environment.isPreview = true;
+  r.isPreview = true;
   await assert.rejects(r.accept("start", {}), /Recursive/);
-  r.environment.isPreview = false;
+  r.isPreview = false;
   await mkdir(join(r.root, "actual"));
   await symlink(join(r.root, "actual"), r.home);
   await assert.rejects(r.safePaths(), /symlink/);
@@ -403,7 +400,7 @@ test("reloading plugin stops owned preview and permits a fresh owner", async (t)
   const next = new PreviewRunner({
     dataDir: r.dataDir,
     rootDir: r.root,
-    environment: r.environment,
+    isPreview: r.isPreview,
     config: r.config,
   });
   await next.init();

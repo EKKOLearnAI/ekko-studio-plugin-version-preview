@@ -13,13 +13,13 @@ const contract = assertContracts(
 /** Preview storage and ports belong to the plugin on every host. */
 export async function runtimeOptions(ctx) {
   const config = { ...ctx.config };
-  config.repository ||= ctx.environment?.studio?.repositoryUrl || "https://github.com/EKKOLearnAI/ekko-studio";
+  config.repository ||= "https://github.com/EKKOLearnAI/ekko-studio";
   for (const [key, previous] of Object.entries({
     frontendPort: [8651, 8661], backendPort: [8650, 8660],
     bridgePort: [18650, 18660], workerPortBase: [19650, 19660],
   })) if (config[key] == null || previous.includes(config[key])) config[key] = 0;
   return { ...await storageOptions(ctx.paths?.dataDir), config, signal: ctx.signal,
-    environment: { isPreview: Boolean(ctx.environment?.isPreview || process.env.VITE_HERMES_PREVIEW === "1") } };
+    isPreview: process.env.VITE_HERMES_PREVIEW === "1" };
 }
 /** @param {import('./sdk/src/index').PluginContext} ctx */
 export async function apply(ctx) {

@@ -6,7 +6,7 @@
 
 prepare/install/start 返回 accepted 快照，需观察 active_action 与 last_action_completed_at 确认最终结果，接受作业不能提示成功。按钮启用条件与内置页面一致：准备需要 tag；安装需要 has_package；开启需要 installed；停止需要 running；活动作业期间禁用四个操作。完成通知只显示新完成记录，包括首次作业，不重放挂载前结果。
 
-插件始终使用自己管理的 isolated 存储模式，只依赖公开 paths.dataDir。可选 environment 只读取仓库元数据与预览标记，不使用其 Web UI 根目录，不申请资源租约。实例摘要由当前进程类型、工作目录与监听端口导出，不包含账号或认证信息。instanceSlot v1 在 instances/.slots 原子登记稳定实例，分别分配目录、状态和不重叠的千端口 worker 区段。
+插件始终使用自己管理的 isolated 存储模式，只依赖公开 paths.dataDir，不读取宿主 environment 或 resources，也不申请资源租约。预览仓库只接受插件 repository 配置或官方默认值，递归保护读取插件启动子进程时设置的进程环境标记。实例摘要由当前进程类型、工作目录与监听端口导出，不包含账号或认证信息。instanceSlot v1 在 instances/.slots 原子登记稳定实例，分别分配目录、状态和不重叠的千端口 worker 区段。
 
 第一实例原位兼容旧插件 isolated-preview 及 runner.json；其他实例使用独立目录。不探测、接管或修改内置预览目录。源码、账号数据库、上传和备份均保留，升级不自动迁移或删除。state v1 新增可选 ports；未提供时自动分配，正常重载复用。未知版本或非法文件拒绝覆盖。
 
