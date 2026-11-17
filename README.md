@@ -46,6 +46,6 @@ STUDIO_CTX.md、STUDIO_RETURNS.md 及其 sdk/docs 副本。指南正文和贡献
 此变更仅针对本插件仓库，不改变 Studio 主仓库整仓许可或外部 npm 依赖许可。
 `package.json` 的 `private: true` 仅防止误发布 npm，不代表 GitHub 仓库私有。
 
-插件头像使用官方 Ekko Studio Logo，设置侧栏沿用原内置版本预览的立方体线条图标（宿主命名图标 `package`），颜色跟随侧栏主题。名称、描述及入口标题通过 manifest.i18n 覆盖 Studio 的全部 12 种语言，内容跟随 ctx.locale；fallback 字符串保留给旧版宿主。0.2.1 的侧栏入口需要支持 `package` 图标的新版 Studio。旧插件 ID、preview 视图 ID 与插件数据目录均保持兼容。
+插件 Logo、主侧栏入口图标、设置侧栏入口图标分别由 `icon`、`navigation.main[].icon`、`navigation.settings[].icon` 独立配置，使用宿主现有图片图标能力，无需新增宿主图标名称。本插件 Logo 使用包内 `assets/logo.png`（官方 Ekko Studio Logo）；仅注册设置侧栏入口，使用包内 `assets/preview-navigation.png`，沿用原版本预览的立方体外观。PNG 为透明背景、中性灰色线条，兼容明暗主题；可编辑源图保存在同目录的 SVG 中，运行时不读取 SVG 或宿主图标库。名称、描述及入口标题通过 manifest.i18n 覆盖 Studio 的全部 12 种语言，内容跟随 ctx.locale；fallback 字符串保留给旧版宿主。旧插件 ID、preview 视图 ID 与插件数据目录均保持兼容。
 
 语言清单与 SDK 的 PLUGIN_LOCALES 一致：en、zh、zh-TW、ja、ko、fr、es、de、pt、ru、ar、tr。预览操作、提示和状态字段均有对应翻译；Naive UI 控件跟随语言，阿拉伯语使用 RTL，路径和日志保留 LTR。

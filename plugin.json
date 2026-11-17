@@ -83,14 +83,14 @@
       "id": "preview",
       "title": "Version Preview",
       "slot": "settings",
-      "icon": "package"
+      "icon": "assets/preview-navigation.png"
     }
   ],
   "navigation": {
     "settings": [
       {
         "viewId": "preview",
-        "icon": "package",
+        "icon": "assets/preview-navigation.png",
         "order": 90
       }
     ]
