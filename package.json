@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Independent Studio source preview runner",
   "license": "MIT",
+  "author": "ekko",
   "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-version-preview",
   "engines": {
     "node": ">=23"

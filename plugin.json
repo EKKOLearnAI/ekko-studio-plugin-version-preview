@@ -6,6 +6,9 @@
   "description": "Preview Studio versions with isolated source, data and services.",
   "repository": "https://github.com/EKKOLearnAI/ekko-studio-plugin-version-preview",
   "license": "MIT",
+  "author": {
+    "name": "ekko"
+  },
   "server": "server.mjs",
   "client": "client.mjs",
   "permissions": [
